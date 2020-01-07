@@ -4,7 +4,7 @@ import android.net.nsd.NsdServiceInfo
 import android.view.ViewGroup
 import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.widget.RecyclerView
-import com.vox.sample.webrtc.BR.*
+import com.vox.sample.webrtc.BR.serviceInfo
 
 /**
  * Created by Kadir Mert Ozcan on 22/05/2019.

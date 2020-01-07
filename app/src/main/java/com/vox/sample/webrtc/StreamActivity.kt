@@ -7,8 +7,8 @@ import android.widget.Toast
 import androidx.annotation.NonNull
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONException
-import org.json.JSONObject
 import org.webrtc.*
+
 
 class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
     override fun connectionInitialized() {
@@ -92,12 +92,14 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
 
                 override fun onAddStream(mediaStream: MediaStream) {
                     showToast("Received Remote stream")
+                    if (intent.getStringExtra("mode") == "presenter") {
+                        mediaStream.audioTracks[0].setEnabled(false)
+                    }
                     super.onAddStream(mediaStream)
                     Log.e("audio", mediaStream.audioTracks[0].toString())
                     gotRemoteStream(mediaStream)
                 }
             })!!
-
         addStreamToLocalPeer()
     }
 
@@ -119,7 +121,6 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
      * Received remote peer's media stream. we will get the first video track and render it
      */
     private fun gotRemoteStream(stream: MediaStream) {
-        //we have remote video stream. add to the renderer.
 
 
     }
@@ -152,23 +153,25 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun onOfferReceived(data: JSONObject) {
+    override fun onOfferReceived(signalingMessage: SignalingMessage) {
         showToast("Received Offer")
         localPeer.setRemoteDescription(
             CustomSdpObserver("localSetRemote"),
-            SessionDescription(SessionDescription.Type.OFFER, data.getString("sdp"))
+            SessionDescription(SessionDescription.Type.OFFER,
+                signalingMessage.sessionDescription?.sdp
+            )
         )
         answer()
     }
 
-    override fun onAnswerReceived(data: JSONObject) {
+    override fun onAnswerReceived(signalingMessage: SignalingMessage) {
         showToast("Received Answer")
         try {
             localPeer.setRemoteDescription(
                 CustomSdpObserver("localSetRemote"),
                 SessionDescription(
-                    SessionDescription.Type.fromCanonicalForm(data.getString("type").toLowerCase()),
-                    data.getString("sdp")
+                    SessionDescription.Type.ANSWER,
+                    signalingMessage.sessionDescription!!.sdp
                 )
             )
         } catch (e: JSONException) {
@@ -177,13 +180,13 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
 
     }
 
-    override fun onIceCandidateReceived(data: JSONObject) {
+    override fun onIceCandidateReceived(signalingMessage: SignalingMessage) {
         try {
             localPeer.addIceCandidate(
                 IceCandidate(
-                    data.getString("id"),
-                    data.getInt("label"),
-                    data.getString("candidate")
+                    signalingMessage.candidate!!.sdpMid,
+                    signalingMessage.candidate!!.sdpMLineIndex,
+                    signalingMessage.candidate!!.sdp
                 )
             )
         } catch (e: JSONException) {

@@ -1,19 +1,15 @@
 package com.vox.sample.webrtc
 
-import android.content.Context
-import android.net.wifi.WifiManager
 import android.util.Log
+import com.google.gson.Gson
 import com.vox.sample.webrtc.MainActivity.Companion.TCP_SERVER_PORT
 import kotlinx.coroutines.*
-import org.json.JSONObject
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
 import java.io.*
-import java.lang.Exception
-import java.net.*
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
-import java.util.*
+import java.net.InetSocketAddress
+import java.net.ServerSocket
+import java.net.Socket
 
 class SocketManager {
 
@@ -36,7 +32,7 @@ class SocketManager {
 
             while (isActive) {
                 client = serverSocket!!.accept()
-                Log.e("amk", "new client")
+                Log.e("Socket", "new client")
                 callback.onNewPeerJoined()
                 val listenClient = listenClient(client)
                 listenClient.start()
@@ -50,13 +46,13 @@ class SocketManager {
             try {
                 val read = inputStream.readLine()
                 if(read != null) {
-                    val jsonObject = JSONObject(read.toString())
-                    if (jsonObject.getString("type") == "answer") {
-                        callback.onAnswerReceived(jsonObject)
-                        Log.e("amk", "New answer from the client")
-                    } else if (jsonObject.getString("type") == "candidate") {
-                        callback.onIceCandidateReceived(jsonObject)
-                        Log.e("amk", "New candidate from the client")
+                    val signalingMessage = Gson().fromJson(read.toString(), SignalingMessage::class.java )
+                    if (signalingMessage.type == "answer") {
+                        callback.onAnswerReceived(signalingMessage)
+                        Log.e("Socket", "New answer from the client")
+                    } else if (signalingMessage.type == "candidate") {
+                        callback.onIceCandidateReceived(signalingMessage)
+                        Log.e("Socket", "New candidate from the client")
                     }
                 }
             } catch (e: Exception) {
@@ -88,13 +84,13 @@ class SocketManager {
             try {
                 val read = inputStream.readLine()
                 if (read != null) {
-                    val jsonObject = JSONObject(read.toString())
-                    if (jsonObject.getString("type") == "offer") {
-                        callback.onOfferReceived(jsonObject)
-                        Log.e("amk", "New offer from the server")
-                    } else if (jsonObject.getString("type") == "candidate") {
-                        callback.onIceCandidateReceived(jsonObject)
-                        Log.e("amk", "New candidate from the server")
+                    val signalingMessage = Gson().fromJson(read.toString(), SignalingMessage::class.java )
+                    if (signalingMessage.type == "offer") {
+                        callback.onOfferReceived(signalingMessage)
+                        Log.e("Socket", "New offer from the server")
+                    } else if (signalingMessage.type == "candidate") {
+                        callback.onIceCandidateReceived(signalingMessage)
+                        Log.e("Socket", "New candidate from the server")
                     }
                 }
             } catch (e: Exception) {
@@ -105,19 +101,20 @@ class SocketManager {
 
     fun sendSdp(sessionDescription: SessionDescription, mode: String) {
         try {
-            val jsonObject = JSONObject()
-            jsonObject.put("type", sessionDescription.type.canonicalForm())
-            jsonObject.put("sdp", sessionDescription.description)
+            val type = sessionDescription.type.canonicalForm()
+            val sdp = SDP(sessionDescription.description)
+            val signalingMessage = SignalingMessage(type, sdp, null)
+            val message = Gson().toJson(signalingMessage)
 
             if (mode == "listener") {
                 val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket!!.getOutputStream())), true)
-                out.println(jsonObject.toString())
-                Log.e("amk", "sending answer to the server")
+                out.println(message)
+                Log.e("Socket", "sending answer to the server")
             }
             else {
                 val out = PrintWriter(BufferedWriter(OutputStreamWriter(client.getOutputStream())), true)
-                out.println(jsonObject.toString())
-                Log.e("amk", "sending offer to the client")
+                out.println(message)
+                Log.e("Socket", "sending offer to the client")
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -126,21 +123,21 @@ class SocketManager {
 
     fun sendCandidate(iceCandidate: IceCandidate, mode: String) {
         try {
-            val jsonObject = JSONObject()
-            jsonObject.put("type", "candidate")
-            jsonObject.put("label", iceCandidate.sdpMLineIndex)
-            jsonObject.put("id", iceCandidate.sdpMid)
-            jsonObject.put("candidate", iceCandidate.sdp)
+            val type = "candidate"
+            val candidate = Candidate(iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
+            val signalingMessage = SignalingMessage(type, null, candidate)
+            val message = Gson().toJson(signalingMessage)
+
 
             if (mode == "listener") {
                 val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket!!.getOutputStream())), true)
-                out.println(jsonObject.toString())
-                Log.e("amk", "Sending ice candidate to the server")
+                out.println(message)
+                Log.e("Socket", "Sending ice candidate to the server")
             }
             else {
                 val out = PrintWriter(BufferedWriter(OutputStreamWriter(client.getOutputStream())), true)
-                out.println(jsonObject.toString())
-                Log.e("amk", "sending ice candidate to the client")
+                out.println(message)
+                Log.e("Socket", "sending ice candidate to the client")
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -150,11 +147,11 @@ class SocketManager {
     interface SocketInterface {
         fun onRemoteHangUp(msg: String)
 
-        fun onOfferReceived(data: JSONObject)
+        fun onOfferReceived(signalingMessage: SignalingMessage)
 
-        fun onAnswerReceived(data: JSONObject)
+        fun onAnswerReceived(signalingMessage: SignalingMessage)
 
-        fun onIceCandidateReceived(data: JSONObject)
+        fun onIceCandidateReceived(signalingMessage: SignalingMessage)
 
         fun onTryToStart()
 
