@@ -1,16 +1,24 @@
 package com.vox.sample.webrtc
 
+import android.app.Activity
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.annotation.NonNull
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONException
 import org.webrtc.*
+import org.webrtc.audio.JavaAudioDeviceModule
+import java.util.concurrent.Executors
+import android.content.Intent
+import kotlinx.android.synthetic.main.activity_stream.*
+
 
 
 class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
+
     override fun connectionInitialized() {
 
     }
@@ -24,14 +32,25 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
     private lateinit var peerConnectionFactory: PeerConnectionFactory
     private lateinit var audioSource: AudioSource
     private lateinit var localAudioTrack: AudioTrack
+    private lateinit var mode: String
     private var gotUserMedia: Boolean = false
     private var peerIceServers: MutableList<PeerConnection.IceServer> = mutableListOf()
-    private lateinit var localPeer: PeerConnection
+    private var localPeer: PeerConnection? = null
     private val socketManager = SocketManager()
+    private var saveRecordedAudioToFile: RecordedAudioToFileController? = null
+    private val executor = Executors.newSingleThreadExecutor()
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_stream)
+        mode = intent.getStringExtra("mode")
+        if (mode == "presenter") {
+            status_text_view.text = "presenting"
+        } else {
+            status_text_view.text = "connecting..."
+        }
         socketManager.init(this)
         initializeOptions()
     }
@@ -40,34 +59,47 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
         //Initialize PeerConnectionFactory globals.
         val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(this)
             .createInitializationOptions()
-        PeerConnectionFactory.initialize(initializationOptions)
         val options = PeerConnectionFactory.Options()
-        peerConnectionFactory = PeerConnectionFactory.builder()
-            .setOptions(options)
-            .createPeerConnectionFactory()
 
-        audioConstraints = MediaConstraints()
-        audioSource = peerConnectionFactory.createAudioSource(audioConstraints)
-        localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
-        gotUserMedia = true
-        createPeerConnection()
-        if (intent.getStringExtra("mode") == "listener") {
-            socketManager.initClientSocket()
-        } else {
-            socketManager.initServerSocket()
+        executor.execute {
+            PeerConnectionFactory.initialize(initializationOptions)
+            saveRecordedAudioToFile = RecordedAudioToFileController(executor, this.applicationContext)
+
+            val audioDeviceModule = JavaAudioDeviceModule.builder(this)
+                .setUseHardwareAcousticEchoCanceler(true)
+                .setUseHardwareNoiseSuppressor(true)
+                .setSamplesReadyCallback(saveRecordedAudioToFile)
+                .createAudioDeviceModule()
+
+            peerConnectionFactory = PeerConnectionFactory.builder()
+                .setOptions(options)
+                .setAudioDeviceModule(audioDeviceModule)
+                .createPeerConnectionFactory()
+
+            audioConstraints = MediaConstraints()
+            audioSource = peerConnectionFactory.createAudioSource(audioConstraints)
+            localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
+            gotUserMedia = true
+            createPeerConnection()
+
+            if (mode == "listener") {
+                socketManager.initClientSocket()
+            } else {
+                socketManager.initServerSocket()
+            }
         }
     }
 
 
     private fun answer() {
-        localPeer.createAnswer(object : CustomSdpObserver("localCreateAns") {
+        localPeer!!.createAnswer(object : CustomSdpObserver("localCreateAns") {
             override fun onCreateSuccess(sessionDescription: SessionDescription) {
                 super.onCreateSuccess(sessionDescription)
-                localPeer.setLocalDescription(
+                localPeer!!.setLocalDescription(
                     CustomSdpObserver("localSetLocal"),
                     sessionDescription
                 )
-                socketManager.sendSdp(sessionDescription, intent.getStringExtra("mode"))
+                socketManager.sendSdp(sessionDescription, mode)
             }
         }, MediaConstraints())
     }
@@ -82,33 +114,42 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
         // Use ECDSA encryption.
         rtcConfig.keyType = PeerConnection.KeyType.ECDSA
 
-        localPeer = peerConnectionFactory.createPeerConnection(
-            rtcConfig,
-            object : CustomPeerConnectionObserver("localPeerCreation") {
-                override fun onIceCandidate(iceCandidate: IceCandidate) {
-                    super.onIceCandidate(iceCandidate)
-                    onIceCandidateReceived(iceCandidate)
-                }
-
-                override fun onAddStream(mediaStream: MediaStream) {
-                    showToast("Received Remote stream")
-                    if (intent.getStringExtra("mode") == "presenter") {
-                        mediaStream.audioTracks[0].setEnabled(false)
+        executor.execute {
+            localPeer = peerConnectionFactory.createPeerConnection(
+                rtcConfig,
+                object : CustomPeerConnectionObserver("localPeerCreation") {
+                    override fun onIceCandidate(iceCandidate: IceCandidate) {
+                        super.onIceCandidate(iceCandidate)
+                        onIceCandidateReceived(iceCandidate)
                     }
-                    super.onAddStream(mediaStream)
-                    Log.e("audio", mediaStream.audioTracks[0].toString())
-                    gotRemoteStream(mediaStream)
-                }
-            })!!
-        addStreamToLocalPeer()
+
+                    override fun onAddStream(mediaStream: MediaStream) {
+                        showToast("Received Remote stream")
+                        if (mode == "presenter") {
+                            mediaStream.audioTracks[0].setEnabled(false)
+                        } else {
+                            runOnUiThread {
+                                record_button.visibility = View.VISIBLE
+                                status_text_view.text = "listening"
+                            }
+                        }
+                        super.onAddStream(mediaStream)
+                        Log.e("audio", mediaStream.audioTracks[0].toString())
+                        gotRemoteStream(mediaStream)
+                    }
+                })!!
+            addStreamToLocalPeer()
+        }
     }
 
 
 
     private fun addStreamToLocalPeer() {
         val stream = peerConnectionFactory.createLocalMediaStream("102")
-        stream.addTrack(localAudioTrack)
-        localPeer.addStream(stream)
+        executor.execute {
+            stream.addTrack(localAudioTrack)
+            localPeer!!.addStream(stream)
+        }
     }
 
     private fun showToast(message: String) {
@@ -146,7 +187,9 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
      * Received local ice candidate. Send it to remote peer through signalling for negotiation
      */
     fun onIceCandidateReceived(iceCandidate: IceCandidate) {
-        socketManager.sendCandidate(iceCandidate, intent.getStringExtra("mode"))
+        executor.execute {
+            socketManager.sendCandidate(iceCandidate, mode)
+        }
     }
 
     override fun onRemoteHangUp(msg: String) {
@@ -155,34 +198,37 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
 
     override fun onOfferReceived(signalingMessage: SignalingMessage) {
         showToast("Received Offer")
-        localPeer.setRemoteDescription(
-            CustomSdpObserver("localSetRemote"),
-            SessionDescription(SessionDescription.Type.OFFER,
-                signalingMessage.sessionDescription?.sdp
+        executor.execute {
+            localPeer!!.setRemoteDescription(
+                CustomSdpObserver("localSetRemote"),
+                SessionDescription(SessionDescription.Type.OFFER,
+                    signalingMessage.sessionDescription?.sdp
+                )
             )
-        )
-        answer()
+            answer()
+        }
     }
 
     override fun onAnswerReceived(signalingMessage: SignalingMessage) {
         showToast("Received Answer")
-        try {
-            localPeer.setRemoteDescription(
-                CustomSdpObserver("localSetRemote"),
-                SessionDescription(
-                    SessionDescription.Type.ANSWER,
-                    signalingMessage.sessionDescription!!.sdp
+        executor.execute {
+            try {
+                localPeer!!.setRemoteDescription(
+                    CustomSdpObserver("localSetRemote"),
+                    SessionDescription(
+                        SessionDescription.Type.ANSWER,
+                        signalingMessage.sessionDescription!!.sdp
+                    )
                 )
-            )
-        } catch (e: JSONException) {
-            e.printStackTrace()
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
         }
-
     }
 
     override fun onIceCandidateReceived(signalingMessage: SignalingMessage) {
         try {
-            localPeer.addIceCandidate(
+            localPeer!!.addIceCandidate(
                 IceCandidate(
                     signalingMessage.candidate!!.sdpMid,
                     signalingMessage.candidate!!.sdpMLineIndex,
@@ -212,16 +258,41 @@ class StreamActivity: AppCompatActivity(), SocketManager.SocketInterface {
         sdpConstraints.mandatory.add(
             MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true")
         )
-        localPeer.createOffer(object : CustomSdpObserver("localCreateOffer") {
-            override fun onCreateSuccess(sessionDescription: SessionDescription) {
-                super.onCreateSuccess(sessionDescription)
-                localPeer.setLocalDescription(
-                    CustomSdpObserver("localSetLocalDesc"),
-                    sessionDescription
-                )
-                Log.e("onCreateSuccess", "SignallingClient emit ")
-                socketManager.sendSdp(sessionDescription, intent.getStringExtra("mode"))
+        executor.execute {
+            localPeer!!.createOffer(object : CustomSdpObserver("localCreateOffer") {
+                override fun onCreateSuccess(sessionDescription: SessionDescription) {
+                    super.onCreateSuccess(sessionDescription)
+                    localPeer!!.setLocalDescription(
+                        CustomSdpObserver("localSetLocalDesc"),
+                        sessionDescription
+                    )
+                    Log.e("onCreateSuccess", "SignallingClient emit ")
+                    socketManager.sendSdp(sessionDescription, mode)
+                }
+            }, sdpConstraints)
+        }
+    }
+
+    override fun onBackPressed() {
+        localPeer!!.close()
+        localPeer = null
+        saveRecordedAudioToFile!!.stopRecordingStream()
+        val intent = Intent()
+        setResult(Activity.RESULT_OK, intent)
+        finish()
+    }
+
+    fun startRecording(view: View) {
+        if (saveRecordedAudioToFile != null) {
+            if (!saveRecordedAudioToFile!!.isRunning) {
+                if (saveRecordedAudioToFile!!.start()) {
+                    Log.d("Record", "Recording input audio to file is activated")
+                    record_button.text = "stop recording"
+                }
+            } else {
+                record_button.text = "start recording"
+                saveRecordedAudioToFile!!.stop()
             }
-        }, sdpConstraints)
+        }
     }
 }

@@ -17,6 +17,13 @@ import java.net.InetAddress
 import java.net.UnknownHostException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import com.microsoft.appcenter.AppCenter
+import com.microsoft.appcenter.analytics.Analytics
+import com.microsoft.appcenter.crashes.Crashes
+import androidx.core.app.ComponentActivity.ExtraData
+import androidx.core.content.ContextCompat.getSystemService
+import android.icu.lang.UCharacter.GraphemeClusterBreak.T
+
 
 
 class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
@@ -44,6 +51,10 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppCenter.start(
+            application, "e9ce7ebd-1197-4566-b969-6dfa0b6b6b37",
+            Analytics::class.java, Crashes::class.java
+        )
         setContentView(R.layout.activity_main)
         nsdManager = this.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
         wifiManager = this.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
