@@ -30,7 +30,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         private const val PRESENTER = 0
         private const val LISTENER = 1
         private const val SERVICE_RESOLVE_COUNT = 5
-        const val PORT = 0
+        const val TCP_SERVER_PORT = 51493
     }
 
     private lateinit var nsdManager: NsdManager
@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         try {
             val address = InetAddress.getByAddress(byteAddress)
             val host = InetAddress.getByName(address.hostAddress)
-            val serviceInfo = createServiceInfo("service", PORT, host)
+            val serviceInfo = createServiceInfo("service", TCP_SERVER_PORT, host)
             var registrationListener = NsdRegistrationListener()
             nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, registrationListener)
             DataManager.currentService = serviceInfo

@@ -2,7 +2,7 @@ package com.vox.sample.webrtc
 
 import android.util.Log
 import com.google.gson.Gson
-import com.vox.sample.webrtc.MainActivity.Companion.PORT
+import com.vox.sample.webrtc.MainActivity.Companion.TCP_SERVER_PORT
 import kotlinx.coroutines.*
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
@@ -28,7 +28,7 @@ class SocketManager {
 
     fun initServerSocket() {
         GlobalScope.launch(Dispatchers.IO) {
-            serverSocket = ServerSocket(PORT)
+            serverSocket = ServerSocket(TCP_SERVER_PORT)
 
             while (isActive) {
                 client = serverSocket!!.accept()
