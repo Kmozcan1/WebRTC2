@@ -104,7 +104,7 @@ class SocketManager {
             val type = sessionDescription.type.canonicalForm()
             val sdp = SDP(sessionDescription.description)
             val signalingMessage = SignalingMessage(type, sdp, null)
-            val message = Gson().toJson(signalingMessage)
+            val message = Gson().toJson(signalingMessage) + "\r\n"
 
             if (mode == "listener") {
                 val out = PrintWriter(BufferedWriter(OutputStreamWriter(socket!!.getOutputStream())), true)
@@ -126,7 +126,7 @@ class SocketManager {
             val type = "candidate"
             val candidate = Candidate(iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
             val signalingMessage = SignalingMessage(type, null, candidate)
-            val message = Gson().toJson(signalingMessage)
+            val message = Gson().toJson(signalingMessage) + "\r\n"
 
 
             if (mode == "listener") {
