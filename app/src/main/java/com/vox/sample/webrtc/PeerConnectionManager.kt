@@ -9,19 +9,16 @@ import com.microsoft.appcenter.utils.HandlerUtils
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
 import org.webrtc.*
 import org.webrtc.audio.JavaAudioDeviceModule
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
-class PeerConnectionManager (private val context: Context) {
+class PeerConnectionManager (context: Context, executor: ExecutorService) {
 
     private var audioConstraints: MediaConstraints
     private var peerConnectionFactory: PeerConnectionFactory
     private var audioSource: AudioSource
     private var localAudioTrack: AudioTrack
     private var saveRecordedAudioToFile: RecordedAudioToFileController? = null
-    private val executor = Executors.newSingleThreadExecutor()
-
-
-
 
     init {
         //Initialize PeerConnectionFactory globals.
@@ -50,6 +47,14 @@ class PeerConnectionManager (private val context: Context) {
 
     fun getLocalAudioTrack(): AudioTrack {
         return localAudioTrack
+    }
+
+    fun getPeerConnectionFactory(): PeerConnectionFactory {
+        return peerConnectionFactory
+    }
+
+    fun getRecordedAudioToFileController(): RecordedAudioToFileController? {
+        return saveRecordedAudioToFile
     }
 
 

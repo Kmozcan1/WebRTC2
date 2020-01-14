@@ -47,19 +47,7 @@ class StreamActivity: AppCompatActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, @NonNull permissions: Array<String>, @NonNull grantResults: IntArray) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
-        if (requestCode == ALL_PERMISSIONS_CODE
-            && grantResults.size == 2
-            && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            && grantResults[1] == PackageManager.PERMISSION_GRANTED
-        ) {
-            // all permissions granted
-        } else {
-            finish()
-        }
-    }
 
     override fun onBackPressed() {
         localPeer!!.close()
@@ -71,6 +59,7 @@ class StreamActivity: AppCompatActivity() {
     }
 
     fun startRecording(view: View) {
+        saveRecordedAudioToFile = socketManager.getRecordedAudioToFileController()
         if (saveRecordedAudioToFile != null) {
             if (!saveRecordedAudioToFile!!.isRunning) {
                 if (saveRecordedAudioToFile!!.start()) {

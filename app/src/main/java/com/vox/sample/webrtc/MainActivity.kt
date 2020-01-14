@@ -1,8 +1,10 @@
 package com.vox.sample.webrtc
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
 import android.net.wifi.WifiManager
@@ -23,7 +25,9 @@ import com.microsoft.appcenter.crashes.Crashes
 import androidx.core.app.ComponentActivity.ExtraData
 import androidx.core.content.ContextCompat.getSystemService
 import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-
+import androidx.annotation.NonNull
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 
 class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
@@ -38,6 +42,7 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         private const val LISTENER = 1
         private const val SERVICE_RESOLVE_COUNT = 5
         const val TCP_SERVER_PORT = 51493
+        const val ALL_PERMISSIONS_CODE = 0
     }
 
     private lateinit var nsdManager: NsdManager
@@ -56,12 +61,27 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
             Analytics::class.java, Crashes::class.java
         )
         setContentView(R.layout.activity_main)
+        askForPermissions()
         nsdManager = this.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
         wifiManager = this.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         stream_recycler_view.setAdapterWithCustomDivider(
             LinearLayoutManager(applicationContext),
             StreamListAdapter(emptyList(), this))
         discoverServices()
+    }
+
+    private fun askForPermissions() {
+        if (ContextCompat.checkSelfPermission(applicationContext,
+                Manifest.permission.RECORD_AUDIO)
+            != PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(applicationContext,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            != PackageManager.PERMISSION_GRANTED ) {
+
+            ActivityCompat.requestPermissions(this,
+                arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                ALL_PERMISSIONS_CODE)
+        }
     }
 
     fun onListClick(serviceInfo : NsdServiceInfo) {

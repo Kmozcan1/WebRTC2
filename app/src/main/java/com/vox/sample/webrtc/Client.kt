@@ -26,17 +26,18 @@ import org.json.JSONException
 
 class Client constructor (var client: Socket, private val context: Context, private val peerConnectionManager: PeerConnectionManager, private val mode: String): SocketInterface {
     private lateinit var sdpConstraints: MediaConstraints
-    private lateinit var peerConnectionFactory: PeerConnectionFactory
+    private var peerConnectionFactory: PeerConnectionFactory = peerConnectionManager.getPeerConnectionFactory()
     private var peerIceServers: MutableList<PeerConnection.IceServer> = mutableListOf()
     private var localPeer: PeerConnection? = null
     private val executor = Executors.newSingleThreadExecutor()
     private lateinit var handler: Handler
+    private var saveRecordedAudioToFile: RecordedAudioToFileController? = null
 
     init {
+        createPeerConnection()
         if (mode == "presenter") {
             onNewPeerJoined()
         }
-        createPeerConnection()
     }
 
     fun getInputStream(): InputStream {
@@ -62,10 +63,13 @@ class Client constructor (var client: Socket, private val context: Context, priv
                         onIceCandidateReceived(iceCandidate)
                     }
 
-                    override fun onAddStream(mediaStream: MediaStream) {
+                    override fun onAddTrack(
+                        rtpReceiver: RtpReceiver?,
+                        mediaStreams: Array<out MediaStream>?
+                    ) {
                         showToast("Received Remote stream")
                         if (mode == "presenter") {
-                            mediaStream.audioTracks[0].setEnabled(false)
+                            mediaStreams!![0].audioTracks[0].setEnabled(false)
                         } else {
                             runOnUiThread {
                                 val recordButton =
@@ -76,9 +80,8 @@ class Client constructor (var client: Socket, private val context: Context, priv
                                 statusTextView.text = "listening"
                             }
                         }
-                        super.onAddStream(mediaStream)
-                        Log.e("audio", mediaStream.audioTracks[0].toString())
-                        gotRemoteStream(mediaStream)
+                        Log.e("audio", mediaStreams!![0].audioTracks[0].toString())
+                        super.onAddTrack(rtpReceiver, mediaStreams)
                     }
                 })!!
             addStreamToLocalPeer()
@@ -87,10 +90,8 @@ class Client constructor (var client: Socket, private val context: Context, priv
 
     private fun addStreamToLocalPeer() {
         val stream = peerConnectionFactory.createLocalMediaStream("102")
-        executor.execute {
-            stream.addTrack(peerConnectionManager.getLocalAudioTrack())
-            localPeer!!.addStream(stream)
-        }
+        stream.addTrack(peerConnectionManager.getLocalAudioTrack())
+        localPeer!!.addTrack(stream.audioTracks[0])
     }
 
     fun onIceCandidateReceived(iceCandidate: IceCandidate) {

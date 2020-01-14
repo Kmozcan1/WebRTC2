@@ -8,6 +8,7 @@ import java.io.*
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.util.concurrent.Executors
 
 class SocketManager (private val context: Context) {
 
@@ -16,7 +17,8 @@ class SocketManager (private val context: Context) {
     private var serverSocket: ServerSocket? = null
     private var socket: Socket? = null
     private lateinit var socketAddress: InetSocketAddress
-    private var peerConnectionManager: PeerConnectionManager = PeerConnectionManager(context)
+    private val executor = Executors.newSingleThreadExecutor()
+    private var peerConnectionManager: PeerConnectionManager = PeerConnectionManager(context, executor)
 
     companion object {
         const val SERVER_SOCKET_PORT = 0
@@ -24,7 +26,7 @@ class SocketManager (private val context: Context) {
 
     fun initServerSocket() {
         GlobalScope.launch(Dispatchers.IO) {
-            serverSocket = ServerSocket(SERVER_SOCKET_PORT)
+            serverSocket = ServerSocket(51493)
 
             while (isActive) {
                 var newClient = serverSocket!!.accept()
@@ -93,5 +95,9 @@ class SocketManager (private val context: Context) {
                 e.printStackTrace()
             }
         }
+    }
+
+    fun getRecordedAudioToFileController() : RecordedAudioToFileController? {
+        return peerConnectionManager.getRecordedAudioToFileController()
     }
 }
