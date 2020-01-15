@@ -1,4 +1,4 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import android.Manifest
 import android.app.Activity
@@ -22,12 +22,9 @@ import java.nio.ByteOrder
 import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
-import androidx.core.app.ComponentActivity.ExtraData
-import androidx.core.content.ContextCompat.getSystemService
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.vox.sample.vow_poc.R
 
 
 class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
@@ -66,7 +63,8 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         wifiManager = this.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
         stream_recycler_view.setAdapterWithCustomDivider(
             LinearLayoutManager(applicationContext),
-            StreamListAdapter(emptyList(), this))
+            StreamListAdapter(emptyList(), this)
+        )
         discoverServices()
     }
 
@@ -80,7 +78,8 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
 
             ActivityCompat.requestPermissions(this,
                 arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                ALL_PERMISSIONS_CODE)
+                ALL_PERMISSIONS_CODE
+            )
         }
     }
 
@@ -104,7 +103,8 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         try {
             val address = InetAddress.getByAddress(byteAddress)
             val host = InetAddress.getByName(address.hostAddress)
-            val serviceInfo = createServiceInfo("service", TCP_SERVER_PORT, host)
+            val serviceInfo = createServiceInfo("service",
+                TCP_SERVER_PORT, host)
             var registrationListener = NsdRegistrationListener()
             nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, registrationListener)
             DataManager.currentService = serviceInfo
@@ -170,7 +170,8 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
 
     private fun refreshRecyclerView() {
         runOnUiThread {
-            stream_recycler_view.adapter = StreamListAdapter(serviceInfoList, this@MainActivity)
+            stream_recycler_view.adapter =
+                StreamListAdapter(serviceInfoList, this@MainActivity)
 
         }
     }
@@ -212,7 +213,8 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         override fun onServiceFound(serviceInfo: NsdServiceInfo) {
             // A service was found! Resolve it and get additional info.
             Log.d(TAG, "Service discovery success$serviceInfo")
-            serviceResolverMap[serviceInfo.serviceName] = SERVICE_RESOLVE_COUNT
+            serviceResolverMap[serviceInfo.serviceName] =
+                SERVICE_RESOLVE_COUNT
             nsdManager.resolveService(serviceInfo, NsdResolveListener())
         }
 

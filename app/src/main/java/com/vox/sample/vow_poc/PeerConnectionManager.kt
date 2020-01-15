@@ -1,16 +1,9 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import android.content.Context
-import android.os.Handler
-import android.util.Log
-import android.view.View
-import android.widget.Toast
-import com.microsoft.appcenter.utils.HandlerUtils
-import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
 import org.webrtc.*
 import org.webrtc.audio.JavaAudioDeviceModule
 import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 
 class PeerConnectionManager (context: Context, executor: ExecutorService) {
 
@@ -27,7 +20,8 @@ class PeerConnectionManager (context: Context, executor: ExecutorService) {
         val options = PeerConnectionFactory.Options()
 
         PeerConnectionFactory.initialize(initializationOptions)
-        saveRecordedAudioToFile = RecordedAudioToFileController(executor, context)
+        saveRecordedAudioToFile =
+            RecordedAudioToFileController(executor, context)
 
         val audioDeviceModule = JavaAudioDeviceModule.builder(context)
             .setUseHardwareAcousticEchoCanceler(true)

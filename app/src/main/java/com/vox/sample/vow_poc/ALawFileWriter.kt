@@ -1,4 +1,4 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import kotlin.experimental.and
 

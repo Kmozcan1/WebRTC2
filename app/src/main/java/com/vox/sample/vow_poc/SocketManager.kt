@@ -1,4 +1,4 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import android.content.Context
 import android.util.Log
@@ -18,7 +18,8 @@ class SocketManager (private val context: Context) {
     private var socket: Socket? = null
     private lateinit var socketAddress: InetSocketAddress
     private val executor = Executors.newSingleThreadExecutor()
-    private var peerConnectionManager: PeerConnectionManager = PeerConnectionManager(context, executor)
+    private var peerConnectionManager: PeerConnectionManager =
+        PeerConnectionManager(context, executor)
 
     companion object {
         const val SERVER_SOCKET_PORT = 0
@@ -30,7 +31,12 @@ class SocketManager (private val context: Context) {
 
             while (isActive) {
                 var newClient = serverSocket!!.accept()
-                client = Client(newClient, context, peerConnectionManager, "presenter")
+                client = Client(
+                    newClient,
+                    context,
+                    peerConnectionManager,
+                    "presenter"
+                )
                 Log.e("Server", "new client")
                 val listenClient = listenClient(client)
                 listenClient.start()
@@ -65,10 +71,18 @@ class SocketManager (private val context: Context) {
             try {
                 socket = Socket()
                 socket!!.keepAlive = true
-                socketAddress = InetSocketAddress(DataManager.getCurrentServiceHost(), DataManager.getCurrentServicePort())
+                socketAddress = InetSocketAddress(
+                    DataManager.getCurrentServiceHost(),
+                    DataManager.getCurrentServicePort()
+                )
                 socket!!.connect(socketAddress, 5000) //connection timeout
                 inputStream = socket?.getInputStream()
-                client = Client(socket!!, context, peerConnectionManager, "listener")
+                client = Client(
+                    socket!!,
+                    context,
+                    peerConnectionManager,
+                    "listener"
+                )
                 listenServer(socket!!).start()
             } catch (e: Exception) {
                 e.printStackTrace()

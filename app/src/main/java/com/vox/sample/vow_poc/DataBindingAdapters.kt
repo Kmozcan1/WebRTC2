@@ -1,4 +1,4 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import android.view.View
 import android.widget.ImageView
@@ -6,6 +6,7 @@ import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.databinding.BindingAdapter
+import com.vox.sample.vow_poc.R
 
 /**
  * Created by Kadir Mert Ozcan on 17/07/2019.
@@ -38,7 +39,13 @@ object DataBindingAdapters {
     @BindingAdapter("android:text")
     @JvmStatic
     fun setTextFromBoolean(view: TextView, value: Boolean) {
-        if (value) setText(view, R.string.YES) else setText(view, R.string.NO)
+        if (value) setText(
+            view,
+            R.string.YES
+        ) else setText(
+            view,
+            R.string.NO
+        )
     }
 
     @BindingAdapter("android:textColor")

@@ -1,18 +1,13 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import android.app.Activity
-import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
-import android.widget.Toast
-import androidx.annotation.NonNull
 import androidx.appcompat.app.AppCompatActivity
-import org.json.JSONException
 import org.webrtc.*
-import org.webrtc.audio.JavaAudioDeviceModule
-import java.util.concurrent.Executors
 import android.content.Intent
+import com.vox.sample.vow_poc.R
 import kotlinx.android.synthetic.main.activity_stream.*
 
 

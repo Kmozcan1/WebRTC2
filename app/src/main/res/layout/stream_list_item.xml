@@ -2,7 +2,7 @@
 <layout>
 
   <data>
-    <variable name="mainActivity" type="com.vox.sample.webrtc.MainActivity"/>
+    <variable name="mainActivity" type="com.vox.sample.vow_poc.MainActivity"/>
     <variable name="serviceInfo" type="android.net.nsd.NsdServiceInfo"/>
   </data>
 

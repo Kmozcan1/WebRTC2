@@ -1,4 +1,4 @@
-package com.vox.sample.webrtc;
+package com.vox.sample.vow_poc;
 
 import android.util.Log;
 
@@ -7,6 +7,7 @@ import org.webrtc.IceCandidate;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.RtpReceiver;
+import org.webrtc.RtpTransceiver;
 
 /**
  * Webrtc_Step2
@@ -75,5 +76,10 @@ class CustomPeerConnectionObserver implements PeerConnection.Observer {
     @Override
     public void onAddTrack(RtpReceiver rtpReceiver, MediaStream[] mediaStreams) {
         Log.d(logTag, "onAddTrack() called with: rtpReceiver = [" + rtpReceiver + "], mediaStreams = [" + mediaStreams + "]");
+    }
+
+    @Override
+    public void onTrack(RtpTransceiver rtpReceiver) {
+        Log.d(logTag, "onAddTrack() called with: rtpReceiver = [" + rtpReceiver + "]");
     }
 }

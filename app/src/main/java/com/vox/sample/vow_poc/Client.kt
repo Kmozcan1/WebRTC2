@@ -1,4 +1,4 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import android.content.Context
 import android.os.Handler
@@ -7,26 +7,16 @@ import android.view.View
 import android.widget.Toast
 import com.google.gson.Gson
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
-import kotlinx.android.synthetic.main.activity_stream.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 import org.webrtc.*
-import org.webrtc.audio.JavaAudioDeviceModule
 import java.io.*
 import java.net.Socket
 import java.util.concurrent.Executors
-import android.app.Activity
 import android.widget.Button
 import android.widget.TextView
-import kotlinx.android.synthetic.main.activity_stream.view.*
+import com.vox.sample.vow_poc.R
 import org.json.JSONException
 import java.util.*
-import java.util.Arrays.asList
 import java.util.regex.Pattern
-import java.util.Arrays.asList
-import java.util.Arrays.asList
 
 
 
@@ -34,8 +24,8 @@ import java.util.Arrays.asList
 
 
 
-
-class Client constructor (var client: Socket, private val context: Context, private val peerConnectionManager: PeerConnectionManager, private val mode: String): SocketInterface {
+class Client constructor (var client: Socket, private val context: Context, private val peerConnectionManager: PeerConnectionManager, private val mode: String):
+    SocketInterface {
     private lateinit var sdpConstraints: MediaConstraints
     private var peerConnectionFactory: PeerConnectionFactory = peerConnectionManager.getPeerConnectionFactory()
     private var peerIceServers: MutableList<PeerConnection.IceServer> = mutableListOf()
@@ -83,17 +73,44 @@ class Client constructor (var client: Socket, private val context: Context, priv
 
                     }
 
-                    override fun onAddTrack(
-                        rtpReceiver: RtpReceiver?,
-                        mediaStreams: Array<out MediaStream>?
-                    ) {
-                        showToast("Received Remote stream")
+                    override fun onAddTrack(rtpReceiver: RtpReceiver?,
+                                            mediaStreams: Array<out MediaStream>?) {
+                        super.onAddTrack(rtpReceiver, mediaStreams)
                         if (mode == "presenter") {
                             mediaStreams!![0].audioTracks[0].setEnabled(false)
-                        } else {
-
                         }
-                        Log.e("audio", mediaStreams!![0].audioTracks[0].toString())
+                    }
+
+                    override fun onTrack(rtpReceiver: RtpTransceiver?) {
+                        super.onTrack(rtpReceiver)
+                        if (mode == "listener") {
+                            runOnUiThread {
+                                val recordButton =
+                                    (context as StreamActivity).findViewById<View>(
+                                        R.id.record_button
+                                    ) as Button
+                                val statusTextView =
+                                    (context).findViewById<View>(R.id.status_text_view) as TextView
+                                recordButton.visibility = View.VISIBLE
+                                statusTextView.text = "listening"
+                            }
+                        }
+                    }
+
+                    override fun onAddStream(mediaStream: MediaStream?) {
+                        super.onAddStream(mediaStream)
+                        if (mode == "listener") {
+                            runOnUiThread {
+                                val recordButton =
+                                    (context as StreamActivity).findViewById<View>(
+                                        R.id.record_button
+                                    ) as Button
+                                val statusTextView =
+                                    (context).findViewById<View>(R.id.status_text_view) as TextView
+                                recordButton.visibility = View.VISIBLE
+                                statusTextView.text = "listening"
+                            }
+                        }
                     }
                 })!!
             if (mode == "presenter") {
@@ -161,7 +178,11 @@ class Client constructor (var client: Socket, private val context: Context, priv
         try {
             val type = "candidate"
             val candidate =
-                Candidate(iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
+                Candidate(
+                    iceCandidate.sdp,
+                    iceCandidate.sdpMLineIndex,
+                    iceCandidate.sdpMid
+                )
             val signalingMessage = SignalingMessage(type, null, candidate)
             val message = Gson().toJson(signalingMessage) + "\r\n"
 
@@ -188,6 +209,7 @@ class Client constructor (var client: Socket, private val context: Context, priv
 
     override fun onOfferReceived(signalingMessage: SignalingMessage) {
         showToast("Received Offer")
+
         executor.execute {
             localPeer!!.setRemoteDescription(
                 CustomSdpObserver("localSetRemote"),
@@ -195,16 +217,8 @@ class Client constructor (var client: Socket, private val context: Context, priv
                     signalingMessage.sessionDescription?.sdp
                 )
             )
-            runOnUiThread {
-                val recordButton =
-                    (context as StreamActivity).findViewById<View>(R.id.record_button) as Button
-                val statusTextView =
-                    (context).findViewById<View>(R.id.status_text_view) as TextView
-                recordButton.visibility = View.VISIBLE
-                statusTextView.text = "listening"
-            }
-            answer()
         }
+        answer()
     }
 
     private fun answer() {
@@ -272,16 +286,16 @@ class Client constructor (var client: Socket, private val context: Context, priv
         executor.execute {
             localPeer!!.createOffer(object : CustomSdpObserver("localCreateOffer") {
                 override fun onCreateSuccess(sessionDescription: SessionDescription) {
-                    var sdpDescription = preferCodec(sessionDescription.description, "opus", true)
-                    var sdpRemote =  SessionDescription(sessionDescription.type, sdpDescription)
-                    super.onCreateSuccess(sdpRemote)
+                    //var sdpDescription = preferCodec(sessionDescription.description, "opus", true)
+                    //var sdpRemote =  SessionDescription(sessionDescription.type, sdpDescription)
+                    super.onCreateSuccess(sessionDescription)
 
                     localPeer!!.setLocalDescription(
                         CustomSdpObserver("localSetLocalDesc"),
-                        sdpRemote
+                        sessionDescription
                     )
                     Log.e("onCreateSuccess", "SignallingClient emit ")
-                    sendSdp(sdpRemote)
+                    sendSdp(sessionDescription)
                 }
             }, sdpConstraints)
         }

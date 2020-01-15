@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">WebRTC</string>
+    <string name="app_name">VoW_poc</string>
     <string name="stream">Stream</string>
     <string name="YES">Yes</string>
     <string name="NO">No</string>

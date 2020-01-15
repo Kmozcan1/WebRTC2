@@ -1,4 +1,4 @@
-package com.vox.sample.webrtc
+package com.vox.sample.vow_poc
 
 import android.content.Context
 import android.media.AudioFormat
@@ -33,7 +33,10 @@ class RecordedAudioToFileController(private val executor: ExecutorService, priva
     }
 
     private fun startRecordingStream() {
-        pathToDir = RecordingFactory.folderNameForRecordingKind(context, RecordingFactory.RECORDING_KIND_STREAM_LISTENER)
+        pathToDir = RecordingFactory.folderNameForRecordingKind(
+            context,
+            RecordingFactory.RECORDING_KIND_STREAM_LISTENER
+        )
         started = System.currentTimeMillis()
         name = "stream_$started$AUDIO_FILE_EXTENSION"
 
@@ -42,7 +45,10 @@ class RecordedAudioToFileController(private val executor: ExecutorService, priva
             f.mkdirs()
         }
 
-        aLawWriter = ALawFileWriter("$pathToDir/$name", SAMPLE_RATE.toLong())
+        aLawWriter = ALawFileWriter(
+            "$pathToDir/$name",
+            SAMPLE_RATE.toLong()
+        )
 
         try {
             aLawWriter.startWriting()
