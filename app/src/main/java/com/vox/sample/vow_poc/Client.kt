@@ -178,11 +178,7 @@ class Client constructor (var client: Socket, private val context: Context, priv
         try {
             val type = "candidate"
             val candidate =
-                Candidate(
-                    iceCandidate.sdp,
-                    iceCandidate.sdpMLineIndex,
-                    iceCandidate.sdpMid
-                )
+                Candidate(iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
             val signalingMessage = SignalingMessage(type, null, candidate)
             val message = Gson().toJson(signalingMessage) + "\r\n"
 
@@ -217,8 +213,9 @@ class Client constructor (var client: Socket, private val context: Context, priv
                     signalingMessage.sessionDescription?.sdp
                 )
             )
+            answer()
         }
-        answer()
+
     }
 
     private fun answer() {
