@@ -10,7 +10,7 @@ import java.net.ServerSocket
 import java.net.Socket
 import java.util.concurrent.Executors
 
-class SocketManager (private val context: Context) {
+class SocketManager (private val context: Context, mode: String) {
 
     private lateinit var client: Client
     private var inputStream: InputStream? = null
@@ -19,7 +19,7 @@ class SocketManager (private val context: Context) {
     private lateinit var socketAddress: InetSocketAddress
     private val executor = Executors.newSingleThreadExecutor()
     private var peerConnectionManager: PeerConnectionManager =
-        PeerConnectionManager(context, executor)
+        PeerConnectionManager(context, executor, mode)
 
     companion object {
         const val SERVER_SOCKET_PORT = 0

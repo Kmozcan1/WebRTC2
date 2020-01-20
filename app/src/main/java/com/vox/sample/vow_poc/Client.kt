@@ -251,12 +251,13 @@ class Client constructor (var client: Socket, private val context: Context, priv
 
     override fun onIceCandidateReceived(signalingMessage: SignalingMessage) {
         try {
+            var candidate = IceCandidate(
+                signalingMessage.candidate!!.sdpMid,
+                signalingMessage.candidate!!.sdpMLineIndex,
+                signalingMessage.candidate!!.sdp
+            )
             localPeer!!.addIceCandidate(
-                IceCandidate(
-                    signalingMessage.candidate!!.sdpMid,
-                    signalingMessage.candidate!!.sdpMLineIndex,
-                    signalingMessage.candidate!!.sdp
-                )
+                candidate
             )
         } catch (e: JSONException) {
             e.printStackTrace()
@@ -276,11 +277,11 @@ class Client constructor (var client: Socket, private val context: Context, priv
     }
 
     override fun onNewPeerJoined() {
-        sdpConstraints = MediaConstraints()
-        sdpConstraints.mandatory.add(
-            MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true")
-        )
         executor.execute {
+            sdpConstraints = MediaConstraints()
+            sdpConstraints.mandatory.add(
+                MediaConstraints.KeyValuePair("OfferToReceiveAudio", "true")
+            )
             localPeer!!.createOffer(object : CustomSdpObserver("localCreateOffer") {
                 override fun onCreateSuccess(sessionDescription: SessionDescription) {
                     //var sdpDescription = preferCodec(sessionDescription.description, "opus", true)

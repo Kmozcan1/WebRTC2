@@ -5,19 +5,24 @@ import org.webrtc.*
 import org.webrtc.audio.JavaAudioDeviceModule
 import java.util.concurrent.ExecutorService
 
-class PeerConnectionManager (context: Context, executor: ExecutorService) {
+class PeerConnectionManager (context: Context, executor: ExecutorService, mode: String) {
 
-    private var audioConstraints: MediaConstraints
+    private lateinit var audioConstraints: MediaConstraints
     private var peerConnectionFactory: PeerConnectionFactory
-    private var audioSource: AudioSource
-    private var localAudioTrack: AudioTrack
+    private lateinit var audioSource: AudioSource
+    private lateinit var localAudioTrack: AudioTrack
     private var saveRecordedAudioToFile: RecordedAudioToFileController? = null
 
     init {
         //Initialize PeerConnectionFactory globals.
         val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(context)
+            .setEnableInternalTracer(true)
+            .setFieldTrials("WebRTC-H264HighProfile/Enabled/")
             .createInitializationOptions()
-        val options = PeerConnectionFactory.Options()
+        val options = PeerConnectionFactory.Options().apply {
+            disableEncryption = true
+            disableNetworkMonitor = true
+        }
 
         PeerConnectionFactory.initialize(initializationOptions)
         saveRecordedAudioToFile =
@@ -34,9 +39,11 @@ class PeerConnectionManager (context: Context, executor: ExecutorService) {
             .setAudioDeviceModule(audioDeviceModule)
             .createPeerConnectionFactory()
 
-        audioConstraints = MediaConstraints()
-        audioSource = peerConnectionFactory.createAudioSource(audioConstraints)
-        localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
+        if (mode == "presenter") {
+            audioConstraints = MediaConstraints()
+            audioSource = peerConnectionFactory.createAudioSource(audioConstraints)
+            localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
+        }
     }
 
     fun getLocalAudioTrack(): AudioTrack {

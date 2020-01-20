@@ -1,15 +1,13 @@
 package com.vox.sample.vow_poc
 
 import android.app.Activity
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import org.webrtc.*
-import android.content.Intent
-import com.vox.sample.vow_poc.R
 import kotlinx.android.synthetic.main.activity_stream.*
-
+import org.webrtc.PeerConnection
 
 
 class StreamActivity: AppCompatActivity() {
@@ -34,7 +32,7 @@ class StreamActivity: AppCompatActivity() {
         } else {
             status_text_view.text = "connecting..."
         }
-        socketManager = SocketManager(this)
+        socketManager = SocketManager(this, mode)
         if (mode == "listener") {
             socketManager.initClientSocket()
         } else {
