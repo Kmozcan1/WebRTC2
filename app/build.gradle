@@ -53,4 +53,6 @@ dependencies {
     def appCenterSdkVersion = '2.5.1'
     implementation "com.microsoft.appcenter:appcenter-analytics:${appCenterSdkVersion}"
     implementation "com.microsoft.appcenter:appcenter-crashes:${appCenterSdkVersion}"
+
+    implementation "org.java-websocket:Java-WebSocket:1.4.0"
 }

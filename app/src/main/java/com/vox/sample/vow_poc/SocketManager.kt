@@ -8,6 +8,7 @@ import java.io.*
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.URI
 import java.util.concurrent.Executors
 
 class SocketManager (private val context: Context, mode: String) {
@@ -27,20 +28,9 @@ class SocketManager (private val context: Context, mode: String) {
 
     fun initServerSocket() {
         GlobalScope.launch(Dispatchers.IO) {
-            serverSocket = ServerSocket(51493)
-
-            while (isActive) {
-                var newClient = serverSocket!!.accept()
-                client = Client(
-                    newClient,
-                    context,
-                    peerConnectionManager,
-                    "presenter"
-                )
-                Log.e("Server", "new client")
-                val listenClient = listenClient(client)
-                listenClient.start()
-            }
+            val serverSocket = WebRTCServer(
+                InetSocketAddress("ws://100.24.177.172", 8080))
+            serverSocket.start()
         }
     }
 
@@ -69,21 +59,9 @@ class SocketManager (private val context: Context, mode: String) {
     fun initClientSocket() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                socket = Socket()
-                socket!!.keepAlive = true
-                socketAddress = InetSocketAddress(
-                    DataManager.getCurrentServiceHost(),
-                    DataManager.getCurrentServicePort()
-                )
-                socket!!.connect(socketAddress, 5000) //connection timeout
-                inputStream = socket?.getInputStream()
-                client = Client(
-                    socket!!,
-                    context,
-                    peerConnectionManager,
-                    "listener"
-                )
-                listenServer(socket!!).start()
+                val webRTCClient = WebRTCClient(URI("ws://100.24.177.172:8080"))
+                webRTCClient.connect()
+                //listenServer(socket!!).start()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
