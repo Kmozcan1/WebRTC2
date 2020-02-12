@@ -28,7 +28,13 @@ class Client constructor (var client: Socket, private val context: Context, priv
     SocketInterface {
     private lateinit var sdpConstraints: MediaConstraints
     private var peerConnectionFactory: PeerConnectionFactory = peerConnectionManager.getPeerConnectionFactory()
-    private var peerIceServers: MutableList<PeerConnection.IceServer> = mutableListOf()
+    private var iceServers: List<PeerConnection.IceServer> = listOf(
+        PeerConnection.IceServer("stun:stun.l.google.com:19302"),
+        PeerConnection.IceServer("stun:stun1.l.google.com:19302"),
+        PeerConnection.IceServer("stun:stun2.l.google.com:19302"),
+        PeerConnection.IceServer("stun:stun3.l.google.com:19302"),
+        PeerConnection.IceServer("stun:stun4.l.google.com:19302")
+    )
     private var localPeer: PeerConnection? = null
     private val executor = Executors.newSingleThreadExecutor()
     private lateinit var handler: Handler
@@ -47,7 +53,7 @@ class Client constructor (var client: Socket, private val context: Context, priv
     }
 
     private fun createPeerConnection() {
-        val rtcConfig = PeerConnection.RTCConfiguration(peerIceServers)
+        val rtcConfig = PeerConnection.RTCConfiguration(iceServers)
         rtcConfig.tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
         rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
         rtcConfig.rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE

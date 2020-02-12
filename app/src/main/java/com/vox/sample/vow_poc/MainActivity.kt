@@ -291,6 +291,10 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
             refreshRecyclerView()
         }
     }
+
+    fun listenStream(view: View) {
+        startStreamActivity("listener")
+    }
     //endregion
 
 }

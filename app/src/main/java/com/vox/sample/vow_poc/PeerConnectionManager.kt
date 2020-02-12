@@ -17,10 +17,9 @@ class PeerConnectionManager (context: Context, executor: ExecutorService, mode: 
         //Initialize PeerConnectionFactory globals.
         val initializationOptions = PeerConnectionFactory.InitializationOptions.builder(context)
             .setEnableInternalTracer(true)
-            .setFieldTrials("WebRTC-H264HighProfile/Enabled/")
             .createInitializationOptions()
+
         val options = PeerConnectionFactory.Options().apply {
-            disableEncryption = true
             disableNetworkMonitor = true
         }
 
@@ -42,7 +41,7 @@ class PeerConnectionManager (context: Context, executor: ExecutorService, mode: 
         if (mode == "presenter") {
             audioConstraints = MediaConstraints()
             audioSource = peerConnectionFactory.createAudioSource(audioConstraints)
-            localAudioTrack = peerConnectionFactory.createAudioTrack("101", audioSource)
+            localAudioTrack = peerConnectionFactory.createAudioTrack("audio", audioSource)
         }
     }
 
@@ -57,6 +56,4 @@ class PeerConnectionManager (context: Context, executor: ExecutorService, mode: 
     fun getRecordedAudioToFileController(): RecordedAudioToFileController? {
         return saveRecordedAudioToFile
     }
-
-
 }
