@@ -19,12 +19,7 @@ import java.util.*
 import java.util.regex.Pattern
 
 
-
-
-
-
-
-class Client constructor (var client: Socket, private val context: Context, private val peerConnectionManager: PeerConnectionManager, private val mode: String):
+class Client constructor (private val context: Context, private val peerConnectionManager: PeerConnectionManager, private val mode: String, private val socketManager: SocketManager):
     SocketInterface {
     private lateinit var sdpConstraints: MediaConstraints
     private var peerConnectionFactory: PeerConnectionFactory = peerConnectionManager.getPeerConnectionFactory()
@@ -40,16 +35,13 @@ class Client constructor (var client: Socket, private val context: Context, priv
     private lateinit var handler: Handler
     var firstTime = true
     private var saveRecordedAudioToFile: RecordedAudioToFileController? = null
+    private lateinit var localDescription: SessionDescription
 
     init {
         createPeerConnection()
         if (mode == "presenter") {
             onNewPeerJoined()
         }
-    }
-
-    fun getInputStream(): InputStream {
-        return client.getInputStream()
     }
 
     private fun createPeerConnection() {
@@ -165,13 +157,11 @@ class Client constructor (var client: Socket, private val context: Context, priv
             val message = Gson().toJson(signalingMessage) + "\r\n"
 
             if (mode == "listener") {
-                val out = PrintWriter(BufferedWriter(OutputStreamWriter(client.getOutputStream())), true)
-                out.println(message)
+                socketManager.sendAnswer(message)
                 Log.e("Socket", "sending answer to the server")
             }
             else {
-                val out = PrintWriter(BufferedWriter(OutputStreamWriter(client.getOutputStream())), true)
-                out.println(message)
+                socketManager.sendOffer(message)
                 Log.e("Socket", "sending offer to the client")
             }
         } catch (e: Exception) {
@@ -189,16 +179,9 @@ class Client constructor (var client: Socket, private val context: Context, priv
             val message = Gson().toJson(signalingMessage) + "\r\n"
 
 
-            if (mode == "listener") {
-                val out =
-                    PrintWriter(BufferedWriter(OutputStreamWriter(client.getOutputStream())), true)
-                out.println(message)
+            if (mode == "presenter") {
+                socketManager.sendCandidate(message)
                 Log.e("Client", "Sending ice candidate to the server")
-            } else {
-                val out =
-                    PrintWriter(BufferedWriter(OutputStreamWriter(client.getOutputStream())), true)
-                out.println(message)
-                Log.e("Client", "sending ice candidate to the client")
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -241,6 +224,10 @@ class Client constructor (var client: Socket, private val context: Context, priv
     override fun onAnswerReceived(signalingMessage: SignalingMessage) {
         showToast("Received Answer")
         executor.execute {
+            localPeer!!.setLocalDescription(
+                CustomSdpObserver("localSetLocalDesc"),
+                localDescription
+            )
             try {
                 localPeer!!.setRemoteDescription(
                     CustomSdpObserver("localSetRemote"),
@@ -294,10 +281,9 @@ class Client constructor (var client: Socket, private val context: Context, priv
                     //var sdpRemote =  SessionDescription(sessionDescription.type, sdpDescription)
                     super.onCreateSuccess(sessionDescription)
 
-                    localPeer!!.setLocalDescription(
-                        CustomSdpObserver("localSetLocalDesc"),
-                        sessionDescription
-                    )
+                    localDescription = sessionDescription
+
+
                     Log.e("onCreateSuccess", "SignallingClient emit ")
                     sendSdp(sessionDescription)
                 }

@@ -13,81 +13,87 @@ import java.util.concurrent.Executors
 
 class SocketManager (private val context: Context, mode: String) {
 
-    private lateinit var client: Client
+    private lateinit var listener: Client
+    private lateinit var presenter: Client
     private var inputStream: InputStream? = null
     private var serverSocket: ServerSocket? = null
     private var socket: Socket? = null
     private lateinit var socketAddress: InetSocketAddress
     private val executor = Executors.newSingleThreadExecutor()
+    private lateinit var webRTCPresenter: WebRTCPresenter
+    private lateinit var webRTCListener: WebRTCListener
     private var peerConnectionManager: PeerConnectionManager =
         PeerConnectionManager(context, executor, mode)
 
-    companion object {
-        const val SERVER_SOCKET_PORT = 0
-    }
+
+    //region PRESENTER
 
     fun initServerSocket() {
         GlobalScope.launch(Dispatchers.IO) {
-            val serverSocket = WebRTCServer(
-                InetSocketAddress("ws://100.24.177.172", 8080))
-            serverSocket.start()
+            webRTCPresenter = WebRTCPresenter(URI("ws://100.24.177.172:8080"), this@SocketManager)
+            webRTCPresenter.connect()
         }
     }
 
-    private fun listenClient(client: Client) = GlobalScope.launch(Dispatchers.IO) {
-        val inputStream = BufferedReader(InputStreamReader(client.getInputStream()))
-        while (isActive) {
-            try {
-                val read = inputStream.readLine()
-                if(read != null) {
-                    val signalingMessage = Gson().fromJson(read.toString(), SignalingMessage::class.java )
-                    if (signalingMessage.type == "answer") {
-                        client.onAnswerReceived(signalingMessage)
-                        Log.e("Server", "New answer from the client")
-                    } else if (signalingMessage.type == "candidate") {
-                        client.onIceCandidateReceived(signalingMessage)
-                        Log.e("Server", "New candidate from the client")
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+    fun createPresenter() {
+        presenter = Client(
+            context,
+            peerConnectionManager,
+            "presenter",
+            this@SocketManager
+        )
     }
 
+    fun sendOffer(message: String) {
+        webRTCPresenter.send(message)
+    }
+
+    fun answerReceived(signalingMessage: SignalingMessage) {
+        presenter.onAnswerReceived(signalingMessage)
+    }
+
+    fun sendCandidate(message: String) {
+        webRTCPresenter.send(message)
+    }
+
+    //endregion
+
+    //region LISTENER
 
     fun initClientSocket() {
         GlobalScope.launch(Dispatchers.IO) {
             try {
-                val webRTCClient = WebRTCClient(URI("ws://100.24.177.172:8080"))
-                webRTCClient.connect()
-                //listenServer(socket!!).start()
+                webRTCListener = WebRTCListener(URI("ws://100.24.177.172:8080"), this@SocketManager)
+                webRTCListener.connect()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
     }
 
-    private fun listenServer(socket: Socket) = GlobalScope.launch(Dispatchers.IO) {
-        val inputStream = BufferedReader(InputStreamReader(socket.getInputStream()))
-        while (isActive) {
-            try {
-                val read = inputStream.readLine()
-                if (read != null) {
-                    val signalingMessage = Gson().fromJson(read.toString(), SignalingMessage::class.java )
-                    if (signalingMessage.type == "offer") {
-                        client.onOfferReceived(signalingMessage)
-                        Log.e("Client", "New offer from the server")
-                    } else if (signalingMessage.type == "candidate") {
-                        client.onIceCandidateReceived(signalingMessage)
-                        Log.e("Client", "New candidate from the server")
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+    private fun createListener() {
+        listener = Client(
+            context,
+            peerConnectionManager,
+            "listener",
+            this@SocketManager
+        )
     }
+
+    fun sendAnswer(message: String) {
+        webRTCListener.send(message)
+    }
+
+    fun offerReceived(signalingMessage: SignalingMessage) {
+        createListener()
+        listener.onOfferReceived(signalingMessage)
+    }
+
+    fun candidateReceived(signalingMessage: SignalingMessage) {
+        listener.onIceCandidateReceived(signalingMessage)
+    }
+
+    //endregion
 
     fun getRecordedAudioToFileController() : RecordedAudioToFileController? {
         return peerConnectionManager.getRecordedAudioToFileController()
