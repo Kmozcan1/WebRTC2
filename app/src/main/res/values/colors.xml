@@ -1,8 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#008577</color>
-    <color name="colorPrimaryDark">#00574B</color>
+    <color name="colorPrimary">#00364a</color>
+    <color name="colorPrimaryDark">#003c50</color>
+    <color name="colorBrightRed">#ff3a30</color>
     <color name="colorAccent">#D81B60</color>
-    <color name="colorBlueGrey">#9ca8b5</color>
+    <color name="colorDarkBlue">#202754</color>
+    <color name="colorAccentLight">#f7fded</color>
     <color name="colorMiddleBlack">#121212</color>
+    <color name="colorBlueGrey">#9ca8b5</color>
+    <color name="colorPrimaryNavy">#323d83</color>
+    <color name="colorLightSage">#cbccca</color>
+    <color name="colorLightGrey">#f7f9fa</color>
+    <color name="colorCoral">#ff6347</color>
+    <color name="colorDarkGrey">#637282</color>
+    <color name="colorDarkerGrey">#595959</color>
+    <color name="colorBlack61Percent">#61000000</color>
+    <color name="colorBlack33Percent">#33000000</color>
+    <color name="colorPrimaryShadowed">#99b2ba</color>
+    <color name="colorLightBlueGrey">#cdd4d6</color>
+    <color name="colorThumbGrey">#f1f1f1</color>
+    <color name="colorHawkesBlue">#d1deff</color>
+    <color name="colorPerano">#93b0ff</color>
+    <color name="colorCharcoal">#444444</color>
+    <color name="colorSelectedMessage">#f8fbff</color>
+    <color name="colorDivider">#e3e5e6</color>
+    <color name="colorExtraDarkGrey">#505c69</color>
+    <color name="colorPrimaryText">#001b24</color>
 </resources>

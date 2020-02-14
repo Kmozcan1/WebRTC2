@@ -13,15 +13,11 @@ import java.util.concurrent.Executors
 
 class SocketManager (private val context: Context, mode: String) {
 
-    private lateinit var listener: Client
-    private lateinit var presenter: Client
-    private var inputStream: InputStream? = null
-    private var serverSocket: ServerSocket? = null
-    private var socket: Socket? = null
-    private lateinit var socketAddress: InetSocketAddress
+    private var listener: Client? = null
+    private var presenter: Client? = null
     private val executor = Executors.newSingleThreadExecutor()
-    private lateinit var webRTCPresenter: WebRTCPresenter
-    private lateinit var webRTCListener: WebRTCListener
+    private var webRTCPresenter: WebRTCPresenter? = null
+    private var webRTCListener: WebRTCListener? = null
     private var peerConnectionManager: PeerConnectionManager =
         PeerConnectionManager(context, executor, mode)
 
@@ -31,7 +27,7 @@ class SocketManager (private val context: Context, mode: String) {
     fun initServerSocket() {
         GlobalScope.launch(Dispatchers.IO) {
             webRTCPresenter = WebRTCPresenter(URI("ws://100.24.177.172:8080"), this@SocketManager)
-            webRTCPresenter.connect()
+            webRTCPresenter?.connect()
         }
     }
 
@@ -45,15 +41,15 @@ class SocketManager (private val context: Context, mode: String) {
     }
 
     fun sendOffer(message: String) {
-        webRTCPresenter.send(message)
+        webRTCPresenter?.send(message)
     }
 
     fun answerReceived(signalingMessage: SignalingMessage) {
-        presenter.onAnswerReceived(signalingMessage)
+        presenter?.onAnswerReceived(signalingMessage)
     }
 
     fun sendCandidate(message: String) {
-        webRTCPresenter.send(message)
+        webRTCPresenter?.send(message)
     }
 
     //endregion
@@ -64,7 +60,7 @@ class SocketManager (private val context: Context, mode: String) {
         GlobalScope.launch(Dispatchers.IO) {
             try {
                 webRTCListener = WebRTCListener(URI("ws://100.24.177.172:8080"), this@SocketManager)
-                webRTCListener.connect()
+                webRTCListener?.connect()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -81,21 +77,32 @@ class SocketManager (private val context: Context, mode: String) {
     }
 
     fun sendAnswer(message: String) {
-        webRTCListener.send(message)
+        webRTCListener?.send(message)
     }
 
     fun offerReceived(signalingMessage: SignalingMessage) {
         createListener()
-        listener.onOfferReceived(signalingMessage)
+        listener?.onOfferReceived(signalingMessage)
     }
 
     fun candidateReceived(signalingMessage: SignalingMessage) {
-        listener.onIceCandidateReceived(signalingMessage)
+        listener?.onIceCandidateReceived(signalingMessage)
     }
 
     //endregion
 
     fun getRecordedAudioToFileController() : RecordedAudioToFileController? {
         return peerConnectionManager.getRecordedAudioToFileController()
+    }
+
+    fun disconnect(mode: String) {
+        if (mode == "presenter") {
+            presenter?.disconnect()
+        }
+        else {
+            listener?.disconnect()
+        }
+        webRTCPresenter?.close()
+        webRTCListener?.close()
     }
 }

@@ -23,13 +23,18 @@ class Client constructor (private val context: Context, private val peerConnecti
     SocketInterface {
     private lateinit var sdpConstraints: MediaConstraints
     private var peerConnectionFactory: PeerConnectionFactory = peerConnectionManager.getPeerConnectionFactory()
-    private var iceServers: List<PeerConnection.IceServer> = listOf(
-        PeerConnection.IceServer("stun:stun.l.google.com:19302"),
-        PeerConnection.IceServer("stun:stun1.l.google.com:19302"),
-        PeerConnection.IceServer("stun:stun2.l.google.com:19302"),
-        PeerConnection.IceServer("stun:stun3.l.google.com:19302"),
-        PeerConnection.IceServer("stun:stun4.l.google.com:19302")
+
+
+    private val iceServers: List<PeerConnection.IceServer> = listOf(
+        PeerConnection.IceServer
+            .builder(listOf("turn:global.turn.twilio.com:3478?transport=udp",
+                "turn:global.turn.twilio.com:3478?transport=tcp",
+                "turn:global.turn.twilio.com:443?transport=tcp"))
+            .setUsername("41cce2a71a9d6ca7c9ac717c3182288f16d2a365493d7b3d00f8f984d1ad9747")
+            .setPassword("TI4YxtEGFIn9dFlCX1t2tQywogFSokatPbVKBAzEHTY=")
+            .createIceServer()
     )
+
     private var localPeer: PeerConnection? = null
     private val executor = Executors.newSingleThreadExecutor()
     private lateinit var handler: Handler
@@ -62,15 +67,8 @@ class Client constructor (private val context: Context, private val peerConnecti
                         super.onIceCandidate(iceCandidate)
                         if (mode == "presenter") {
                             onIceCandidateReceived(iceCandidate)
-                        } else {
-                            if (firstTime) {
-                                firstTime = false
-
-                            }
                         }
-
                     }
-
                     override fun onAddTrack(rtpReceiver: RtpReceiver?,
                                             mediaStreams: Array<out MediaStream>?) {
                         super.onAddTrack(rtpReceiver, mediaStreams)
@@ -89,8 +87,21 @@ class Client constructor (private val context: Context, private val peerConnecti
                                     ) as Button
                                 val statusTextView =
                                     (context).findViewById<View>(R.id.status_text_view) as TextView
-                                recordButton.visibility = View.VISIBLE
-                                statusTextView.text = "listening"
+                            }
+                        }
+                    }
+
+                    override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
+                        super.onConnectionChange(newState)
+                        if (newState == PeerConnection.PeerConnectionState.DISCONNECTED && mode == "listener") {
+                            runOnUiThread {
+                                showToast("Presenter closed the stream")
+                                val hangupButton =
+                                    (context as MainActivity).findViewById<View>(
+                                        R.id.hangup_button
+                                    ) as Button
+                                hangupButton.performClick()
+                                localPeer?.close()
                             }
                         }
                     }
@@ -99,14 +110,6 @@ class Client constructor (private val context: Context, private val peerConnecti
                         super.onAddStream(mediaStream)
                         if (mode == "listener") {
                             runOnUiThread {
-                                val recordButton =
-                                    (context as StreamActivity).findViewById<View>(
-                                        R.id.record_button
-                                    ) as Button
-                                val statusTextView =
-                                    (context).findViewById<View>(R.id.status_text_view) as TextView
-                                recordButton.visibility = View.VISIBLE
-                                statusTextView.text = "listening"
                             }
                         }
                     }
@@ -243,6 +246,15 @@ class Client constructor (private val context: Context, private val peerConnecti
     }
 
     override fun onIceCandidateReceived(signalingMessage: SignalingMessage) {
+        if (firstTime) {
+            runOnUiThread {
+                val statusTextView =
+                    (context as MainActivity).findViewById<View>(R.id.status_text_view) as TextView
+                statusTextView.text = "Listening"
+            }
+            firstTime = false
+        }
+
         try {
             var candidate = IceCandidate(
                 signalingMessage.candidate!!.sdpMid,
@@ -291,84 +303,10 @@ class Client constructor (private val context: Context, private val peerConnecti
         }
     }
 
-    private fun preferCodec(sdpDescription: String, codec: String, isAudio: Boolean): String {
-        val lines =
-            sdpDescription.split("\r\n".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-        val mLineIndex = findMediaDescriptionLine(isAudio, lines)
-        if (mLineIndex == -1) {
-            Log.w("asd", "No mediaDescription line, so can't prefer $codec")
-            return sdpDescription
+    fun disconnect() {
+        if (localPeer != null) {
+            localPeer?.close()
         }
-        // A list with all the payload types with name |codec|. The payload types are integers in the
-        // range 96-127, but they are stored as strings here.
-        val codecPayloadTypes = arrayListOf<String>()
-        // a=rtpmap:<payload type> <encoding name>/<clock rate> [/<encoding parameters>]
-        val codecPattern = Pattern.compile("^a=rtpmap:(\\d+) $codec(/\\d+)+[\r]?$")
-        for (line in lines) {
-            val codecMatcher = codecPattern.matcher(line)
-            if (codecMatcher.matches()) {
-                codecPayloadTypes.add(codecMatcher.group(1))
-            }
-        }
-        if (codecPayloadTypes.isEmpty()) {
-            Log.w("asd", "No payload types with name $codec")
-            return sdpDescription
-        }
-
-        val newMLine = movePayloadTypesToFront(codecPayloadTypes, lines[mLineIndex])
-            ?: return sdpDescription
-        Log.d("asd", "Change media description from: " + lines[mLineIndex] + " to " + newMLine)
-        lines[mLineIndex] = newMLine
-        return joinString(lines.toList(), "\r\n", true /* delimiterAtEnd */);
-    }
-
-    /** Returns the line number containing "m=audio|video", or -1 if no such line exists.  */
-    private fun findMediaDescriptionLine(isAudio: Boolean, sdpLines: Array<String>): Int {
-        val mediaDescription = if (isAudio) "m=audio " else "m=video "
-        for (i in sdpLines.indices) {
-            if (sdpLines[i].startsWith(mediaDescription)) {
-                return i
-            }
-        }
-        return -1
-    }
-
-    private fun movePayloadTypesToFront(
-        preferredPayloadTypes: List<String>, mLine: String
-    ): String? {
-        // The format of the media description line should be: m=<media> <port> <proto> <fmt> ...
-        val origLineParts = mLine.split(" ")
-        if (origLineParts.size <= 3) {
-            Log.e("asd", "Wrong SDP media description format: $mLine")
-            return null
-        }
-        val header = origLineParts.subList(0, 3)
-        val unpreferredPayloadTypes = ArrayList(origLineParts.subList(3, origLineParts.size))
-        unpreferredPayloadTypes.removeAll(preferredPayloadTypes)
-        // Reconstruct the line with |preferredPayloadTypes| moved to the beginning of the payload
-        // types.
-        val newLineParts = arrayListOf<String>()
-        newLineParts.addAll(header)
-        newLineParts.addAll(preferredPayloadTypes)
-        newLineParts.addAll(unpreferredPayloadTypes)
-        return joinString(newLineParts, " ", false /* delimiterAtEnd */)
-    }
-
-    private fun joinString(
-        s: Iterable<CharSequence>, delimiter: String, delimiterAtEnd: Boolean
-    ): String {
-        val iter = s.iterator()
-        if (!iter.hasNext()) {
-            return ""
-        }
-        val buffer = StringBuilder(iter.next())
-        while (iter.hasNext()) {
-            buffer.append(delimiter).append(iter.next())
-        }
-        if (delimiterAtEnd) {
-            buffer.append(delimiter)
-        }
-        return buffer.toString()
     }
 
     override fun connectionInitialized() {

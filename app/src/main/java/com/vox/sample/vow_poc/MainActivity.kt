@@ -25,12 +25,10 @@ import com.microsoft.appcenter.crashes.Crashes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.vox.sample.vow_poc.R
+import org.webrtc.PeerConnection
 
 
-class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
-    override fun onRefresh() {
-        refreshService()
-    }
+class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val SERVICE_TYPE = "_populi._tcp"
@@ -42,13 +40,11 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         const val ALL_PERMISSIONS_CODE = 0
     }
 
-    private lateinit var nsdManager: NsdManager
-    private lateinit var wifiManager: WifiManager
-    private lateinit var lock: WifiManager.MulticastLock
-    private val serviceInfoList = ArrayList<NsdServiceInfo>()
-    private val serviceResolverMap = HashMap<String, Int>()
-    private val discoveryListenerList = ArrayList<NsdDiscoveryListener>()
-    private var refreshingDiscovery = false
+    private lateinit var mode: String
+    private var localPeer: PeerConnection? = null
+    private lateinit var socketManager: SocketManager
+    private var saveRecordedAudioToFile: RecordedAudioToFileController? = null
+
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -59,13 +55,6 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         )
         setContentView(R.layout.activity_main)
         askForPermissions()
-        nsdManager = this.applicationContext.getSystemService(Context.NSD_SERVICE) as NsdManager
-        wifiManager = this.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
-        stream_recycler_view.setAdapterWithCustomDivider(
-            LinearLayoutManager(applicationContext),
-            StreamListAdapter(emptyList(), this)
-        )
-        discoverServices()
     }
 
     private fun askForPermissions() {
@@ -83,97 +72,11 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         }
     }
 
-    fun onListClick(serviceInfo : NsdServiceInfo) {
-        DataManager.currentService = serviceInfo
-        startStreamActivity("listener")
-    }
-
-    fun startStreaming(view: View) {
-        registerService()
-    }
-
-    private fun registerService() {
-        createMulticastLock(wifiManager)
-
-        val wifiInfo = wifiManager.connectionInfo
-        val intAddress = wifiInfo.ipAddress
-
-
-        val byteAddress = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(intAddress).array()
-        try {
-            val address = InetAddress.getByAddress(byteAddress)
-            val host = InetAddress.getByName(address.hostAddress)
-            val serviceInfo = createServiceInfo("service",
-                TCP_SERVER_PORT, host)
-            var registrationListener = NsdRegistrationListener()
-            nsdManager.registerService(serviceInfo, NsdManager.PROTOCOL_DNS_SD, registrationListener)
-            DataManager.currentService = serviceInfo
-            stopServiceDiscovery()
-            startStreamActivity("presenter")
-        } catch (e: UnknownHostException) {
-        }
-    }
 
     private fun startStreamActivity(mode: String) {
         val intent = Intent(this, StreamActivity::class.java)
         intent.putExtra("mode", mode)
         startActivityForResult(intent, PRESENTER)
-    }
-
-    private fun discoverServices() {
-        serviceInfoList.removeAll(serviceInfoList)
-        createMulticastLock(wifiManager)
-
-        /**
-         * A new discovery listener instance is created per NSD instructions
-         * https://android.googlesource.com/platform/frameworks/base/+/e7369bd%5E!/
-         * Creating a new listener instance is also useful in refresh scenario,
-         * refreshing too fast can result in an error with a single listener.
-         */
-        val discoveryListener = NsdDiscoveryListener()
-        discoveryListenerList.add(discoveryListener)
-
-        nsdManager.discoverServices(
-            SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discoveryListener)
-    }
-
-    fun refreshService() {
-        refreshingDiscovery = true
-        stopServiceDiscovery()
-        discoverServices()
-    }
-
-
-    private fun stopServiceDiscovery() {
-        for (discoveryListener in discoveryListenerList) {
-            nsdManager.stopServiceDiscovery(discoveryListener)
-        }
-    }
-
-    private fun createMulticastLock(wifiManager: WifiManager) {
-        lock = wifiManager.createMulticastLock("VoW NSD Multicastlock").apply {
-            setReferenceCounted(true)
-            acquire()
-        }
-    }
-
-    private fun createServiceInfo(serviceName: String, port: Int, host: InetAddress?): NsdServiceInfo {
-        return NsdServiceInfo().apply {
-            // The serviceName is subject to change based on conflicts
-            // with other services advertised on the same network.
-            this.serviceName = serviceName
-            this.serviceType = SERVICE_TYPE
-            this.port = port
-            this.host = host
-        }
-    }
-
-    private fun refreshRecyclerView() {
-        runOnUiThread {
-            stream_recycler_view.adapter =
-                StreamListAdapter(serviceInfoList, this@MainActivity)
-
-        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -184,117 +87,43 @@ class MainActivity : AppCompatActivity(), SwipeRefreshLayout.OnRefreshListener {
         }
     }
 
-    //region REGISTRATION LISTENER
-    private inner class NsdRegistrationListener : NsdManager.RegistrationListener {
-        override fun onUnregistrationFailed(serviceInfo: NsdServiceInfo?, errorCode: Int) {
-            Log.d(TAG, "onUnregistrationFailed")
-        }
-
-        override fun onServiceUnregistered(serviceInfo: NsdServiceInfo?) {
-            Log.d(TAG, "onServiceUnregistered")
-        }
-
-        override fun onRegistrationFailed(serviceInfo: NsdServiceInfo?, errorCode: Int) {
-            Log.d(TAG, "onRegistrationFailed")
-        }
-
-        override fun onServiceRegistered(serviceInfo: NsdServiceInfo?) {
-            Log.d(TAG, "onServiceRegistered")
-        }
-    }
-    //endregion
-    //region DISCOVERY LISTENER
-    private inner class NsdDiscoveryListener : NsdManager.DiscoveryListener {
-        // Called as soon as service discovery begins.
-        override fun onDiscoveryStarted(regType: String) {
-            Log.d(TAG, "Service discovery started")
-        }
-
-        override fun onServiceFound(serviceInfo: NsdServiceInfo) {
-            // A service was found! Resolve it and get additional info.
-            Log.d(TAG, "Service discovery success$serviceInfo")
-            serviceResolverMap[serviceInfo.serviceName] =
-                SERVICE_RESOLVE_COUNT
-            nsdManager.resolveService(serviceInfo, NsdResolveListener())
-        }
-
-        override fun onServiceLost(serviceInfo: NsdServiceInfo) {
-            // When the network service is no longer available.
-            // Internal bookkeeping code goes here.
-            Log.e(TAG, "service lost: $serviceInfo")
-
-            /** We only have the name and port of the service here,
-             * since other info is obtained when the service is resolved.
-             * If two devices on the network both have the NsdChat application installed,
-             * one of them changes the service name automatically, to something like "NsdChat (1)".
-             */
-            val lostServiceInfo = serviceInfoList.indexOf(
-                serviceInfoList.find {
-                    it.serviceName == serviceInfo.serviceName
-                })
-            if (lostServiceInfo != -1) {
-                serviceInfoList.removeAt(lostServiceInfo)
-                refreshRecyclerView()
-            }
-        }
-
-        override fun onDiscoveryStopped(serviceType: String) {
-            Log.d(TAG, "Discovery stopped: $serviceType")
-            serviceInfoList.removeAll(serviceInfoList)
-            discoveryListenerList.remove(this)
-            if (refreshingDiscovery) {
-                discoverServices()
-                refreshingDiscovery = false
-            }
-        }
-
-        override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
-            Log.e(TAG, "Discovery failed: Error code:$errorCode")
-            nsdManager.stopServiceDiscovery(this)
-        }
-
-        override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {
-            Log.e(TAG, "Discovery failed: Error code:$errorCode")
-            nsdManager.stopServiceDiscovery(this)
-        }
-    }
-
-    //endregion
-    //region RESOLVE LISTENER
-    private inner class NsdResolveListener :  NsdManager.ResolveListener {
-
-        override fun onResolveFailed(serviceInfo: NsdServiceInfo, errorCode: Int) {
-            // Called when the resolve fails. Use the error code to debug.
-            Log.e(TAG, "Resolve failed: $errorCode $this")
-            when (errorCode) {
-                NsdManager.FAILURE_ALREADY_ACTIVE -> {
-                    /**
-                     * NSD throws this error when we create a new
-                     * listener instance to resolve every discovered service
-                     * 20 ms sleep seems to prevent calling this function infinitely when user
-                     * performs too many refreshes rapidly.
-                     * Will experiment & look for alternate solutions.
-                     */
-                    val resolveCount = serviceResolverMap[serviceInfo.serviceName]
-                    if (resolveCount != null && resolveCount > 0) {
-                        Thread.sleep(20)
-                        serviceResolverMap[serviceInfo.serviceName] = resolveCount - 1
-                        nsdManager.resolveService(serviceInfo, NsdResolveListener())
-                    }
-                }
-            }
-        }
-
-        override fun onServiceResolved(serviceInfo: NsdServiceInfo) {
-            Log.e(TAG, "Resolve Succeeded. $serviceInfo")
-            serviceInfoList.add(serviceInfo)
-            refreshRecyclerView()
-        }
+    fun presentStream(view: View) {
+        mode = "presenter"
+        stream_button.text = "Presenting"
+        status_text_view.text = "Presenting"
+        listen_button.visibility = View.GONE
+        hangup_button.visibility = View.VISIBLE
+        status_text_view.visibility = View.VISIBLE
+        stream_button.isEnabled = false
+        socketManager = SocketManager(this, mode)
+        socketManager.initServerSocket()
     }
 
     fun listenStream(view: View) {
-        startStreamActivity("listener")
+        mode = "listener"
+        listen_button.text = "Listening"
+        status_text_view.text = "Connecting..."
+        stream_button.visibility = View.GONE
+        hangup_button.visibility = View.VISIBLE
+        status_text_view.visibility = View.VISIBLE
+        listen_button.isEnabled = false
+        socketManager = SocketManager(this, mode)
+        socketManager.initClientSocket()
     }
+
+    fun hangupStream(view: View) {
+        listen_button.text = "Listener"
+        stream_button.text = "Presenter"
+        listen_button.visibility = View.VISIBLE
+        stream_button.visibility = View.VISIBLE
+        hangup_button.visibility = View.GONE
+        status_text_view.visibility = View.GONE
+        stream_button.isEnabled = true
+        listen_button.isEnabled = true
+        socketManager.disconnect(mode)
+    }
+
+
     //endregion
 
 }

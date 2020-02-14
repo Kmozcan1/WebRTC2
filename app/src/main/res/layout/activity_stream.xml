@@ -7,7 +7,8 @@
         android:id="@+id/status_text_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="connecting..." />
+        android:text="connecting..."
+        android:background="#00364a"/>
 
     <Button
         android:id="@+id/record_button"

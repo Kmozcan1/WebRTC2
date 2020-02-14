@@ -1,4 +1,16 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
+ext {
+    // Version generator
+    vow_ver = [
+            major: 1,
+            minor: 2,
+            patch: 0,
+            build: 0
+    ]
+
+    vow_ver_code = vow_ver.major * 1000000 + vow_ver.minor * 10000 + vow_ver.patch * 100 + vow_ver.build
+    vow_ver_name = "${vow_ver.major}.${vow_ver.minor}.${vow_ver.patch}"
+}
 
 buildscript {
     ext.kotlin_version = '1.3.50'

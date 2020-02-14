@@ -46,7 +46,7 @@ class WebRTCListener : WebSocketClient {
                 socketManager.offerReceived(signalingMessage)
             } else if (signalingMessage.type == "candidate") {
                 if (!candidateSet.contains(signalingMessage.candidate?.sdp)) {
-                    candidateSet.add(signalingMessage.candidate?.sdp)
+                    //candidateSet.add(signalingMessage.candidate?.sdp)
                     socketManager.candidateReceived(signalingMessage)
                 }
             }
