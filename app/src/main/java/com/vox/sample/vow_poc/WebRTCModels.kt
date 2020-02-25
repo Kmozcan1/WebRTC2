@@ -7,11 +7,30 @@ data class SignalingMessage (
 )
 
 data class SDP (
-    var sdp: String
+    var clientType: String,
+    var sourceId: String,
+    var destinationId: String,
+    var sdp: String,
+    var sdpType: SdpType
 )
 
+enum class SdpType (val rtcSdpType: String) {
+    offer("offer"),
+    answer("answer"),
+    prAnswer("prAnswer")
+}
+
 data class Candidate (
+    var clientType: String,
+    var sourceId: String,
+    var destinationId: String,
     var sdp: String,
     var sdpMLineIndex: Int,
-    var sdpMid: String
+    var sdpMid: String?
 )
+
+data class Syn (
+    var clientType: String,
+    var sourceId: String
+)
+
