@@ -47,7 +47,7 @@ class WebRTCListener : WebSocketClient {
             } else if (signalingMessage.type == "candidate") {
                 if (!candidateSet.contains(signalingMessage.candidate?.sdp)) {
                     //candidateSet.add(signalingMessage.candidate?.sdp)
-                    socketManager.candidateReceived(signalingMessage)
+                    socketManager.candidateReceived(signalingMessage, "listener")
                 }
             }
         }

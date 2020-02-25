@@ -51,13 +51,6 @@ class Client constructor (private val context: Context, private val peerConnecti
 
     private fun createPeerConnection() {
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers)
-        rtcConfig.tcpCandidatePolicy = PeerConnection.TcpCandidatePolicy.ENABLED
-        rtcConfig.bundlePolicy = PeerConnection.BundlePolicy.MAXBUNDLE
-        rtcConfig.rtcpMuxPolicy = PeerConnection.RtcpMuxPolicy.REQUIRE
-        rtcConfig.continualGatheringPolicy =
-            PeerConnection.ContinualGatheringPolicy.GATHER_CONTINUALLY
-        // Use ECDSA encryption.
-        rtcConfig.keyType = PeerConnection.KeyType.ECDSA
 
         executor.execute {
             localPeer = peerConnectionFactory.createPeerConnection(
@@ -65,9 +58,7 @@ class Client constructor (private val context: Context, private val peerConnecti
                 object : CustomPeerConnectionObserver("localPeerCreation") {
                     override fun onIceCandidate(iceCandidate: IceCandidate) {
                         super.onIceCandidate(iceCandidate)
-                        if (mode == "presenter") {
-                            onIceCandidateReceived(iceCandidate)
-                        }
+                        onIceCandidateReceived(iceCandidate)
                     }
                     override fun onAddTrack(rtpReceiver: RtpReceiver?,
                                             mediaStreams: Array<out MediaStream>?) {
@@ -180,12 +171,7 @@ class Client constructor (private val context: Context, private val peerConnecti
                 Candidate(iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
             val signalingMessage = SignalingMessage(type, null, candidate)
             val message = Gson().toJson(signalingMessage) + "\r\n"
-
-
-            if (mode == "presenter") {
-                socketManager.sendCandidate(message)
-                Log.e("Client", "Sending ice candidate to the server")
-            }
+            socketManager.sendCandidate(message, mode)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -246,7 +232,7 @@ class Client constructor (private val context: Context, private val peerConnecti
     }
 
     override fun onIceCandidateReceived(signalingMessage: SignalingMessage) {
-        if (firstTime) {
+        if (firstTime && mode == "listener") {
             runOnUiThread {
                 val statusTextView =
                     (context as MainActivity).findViewById<View>(R.id.status_text_view) as TextView

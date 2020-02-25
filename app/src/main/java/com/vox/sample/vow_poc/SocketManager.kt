@@ -48,8 +48,12 @@ class SocketManager (private val context: Context, mode: String) {
         presenter?.onAnswerReceived(signalingMessage)
     }
 
-    fun sendCandidate(message: String) {
-        webRTCPresenter?.send(message)
+    fun sendCandidate(message: String, mode: String) {
+        if (mode == "presenter") {
+            webRTCPresenter?.send(message)
+        } else {
+            webRTCListener?.send(message)
+        }
     }
 
     //endregion
@@ -85,8 +89,12 @@ class SocketManager (private val context: Context, mode: String) {
         listener?.onOfferReceived(signalingMessage)
     }
 
-    fun candidateReceived(signalingMessage: SignalingMessage) {
-        listener?.onIceCandidateReceived(signalingMessage)
+    fun candidateReceived(signalingMessage: SignalingMessage, mode: String) {
+        if (mode == "presenter") {
+            presenter?.onIceCandidateReceived(signalingMessage)
+        } else {
+            listener?.onIceCandidateReceived(signalingMessage)
+        }
     }
 
     //endregion

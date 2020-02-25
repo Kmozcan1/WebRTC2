@@ -48,6 +48,8 @@ class WebRTCPresenter : WebSocketClient {
             if (signalingMessage != null) {
                 if (signalingMessage.type == "answer") {
                     socketManager.answerReceived(signalingMessage)
+                } else if (signalingMessage.type == "candidate") {
+                    socketManager.candidateReceived(signalingMessage, "presenter")
                 }
             }
         }
