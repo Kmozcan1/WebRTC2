@@ -4,19 +4,15 @@ import android.content.Context
 import android.os.Handler
 import android.util.Log
 import android.view.View
-import android.widget.Toast
-import com.google.gson.Gson
-import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
-import org.webrtc.*
-import java.io.*
-import java.net.Socket
-import java.util.concurrent.Executors
 import android.widget.Button
 import android.widget.TextView
-import com.vox.sample.vow_poc.R
+import android.widget.Toast
+import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
 import org.json.JSONException
-import java.util.*
-import java.util.regex.Pattern
+import org.webrtc.*
+import java.util.concurrent.Executors
 
 
 class Client constructor (private val context: Context, private val peerConnectionManager: PeerConnectionManager, private val mode: String, private val socketManager: SocketManager):
@@ -44,8 +40,8 @@ class Client constructor (private val context: Context, private val peerConnecti
 
     init {
         createPeerConnection()
-        if (mode == "presenter") {
-            onNewPeerJoined()
+        if (mode == "listener") {
+            sendOffer()
         }
     }
 
@@ -143,19 +139,23 @@ class Client constructor (private val context: Context, private val peerConnecti
     }
 
 
-    fun sendSdp(sessionDescription: SessionDescription) {
+    fun sendSdp(sessionDescription: SessionDescription, clientType: ClientType, sdpType: SdpType) {
         try {
-            val type = sessionDescription.type.canonicalForm()
-            val sdp = SDP(sessionDescription.description)
-            val signalingMessage = SignalingMessage(type, sdp, null)
-            val message = Gson().toJson(signalingMessage) + "\r\n"
+            val sdp = SDP(clientType,
+                socketManager.getSourceId(),
+                socketManager.getDestinationId(),
+                sessionDescription.description,
+                sdpType
+                )
+
+            val message = Gson().toJson(Message.sdp(sdp)) + "\r\n"
 
             if (mode == "listener") {
-                socketManager.sendAnswer(message)
-                Log.e("Socket", "sending answer to the server")
+                socketManager.sendOffer(message)
+                Log.e("Socket", "sending offer to the server")
             }
             else {
-                socketManager.sendOffer(message)
+                socketManager.sendAnswer(message)
                 Log.e("Socket", "sending offer to the client")
             }
         } catch (e: Exception) {
@@ -166,11 +166,15 @@ class Client constructor (private val context: Context, private val peerConnecti
 
     private fun sendCandidate(iceCandidate: IceCandidate, mode: String) {
         try {
-            val type = "candidate"
+            var clientType = if (mode == "presenter") {
+                ClientType.PRESENTER
+            } else {
+                ClientType.LISTENER
+            }
             val candidate =
-                Candidate(iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
-            val signalingMessage = SignalingMessage(type, null, candidate)
-            val message = Gson().toJson(signalingMessage) + "\r\n"
+                Candidate(clientType, socketManager.getSourceId(), socketManager.getDestinationId(),
+                    iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
+            val message = Gson().toJson(Message.candidate(candidate)) + "\r\n"
             socketManager.sendCandidate(message, mode)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -181,14 +185,14 @@ class Client constructor (private val context: Context, private val peerConnecti
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun onOfferReceived(signalingMessage: SignalingMessage) {
+    override fun onOfferReceived(offer: SDP) {
         showToast("Received Offer")
 
         executor.execute {
             localPeer!!.setRemoteDescription(
                 CustomSdpObserver("localSetRemote"),
                 SessionDescription(SessionDescription.Type.OFFER,
-                    signalingMessage.sessionDescription?.sdp
+                    offer.sdp
                 )
             )
             answer()
@@ -200,17 +204,17 @@ class Client constructor (private val context: Context, private val peerConnecti
         localPeer!!.createAnswer(object : CustomSdpObserver("localCreateAns") {
             override fun onCreateSuccess(sessionDescription: SessionDescription) {
                 super.onCreateSuccess(sessionDescription)
+                sendSdp(sessionDescription, ClientType.PRESENTER, SdpType.ANSWER)
                 localPeer!!.setLocalDescription(
                     CustomSdpObserver("localSetLocal"),
                     sessionDescription
                 )
-                sendSdp(sessionDescription)
             }
         }, MediaConstraints())
 
     }
 
-    override fun onAnswerReceived(signalingMessage: SignalingMessage) {
+    override fun onAnswerReceived(answer: SDP) {
         showToast("Received Answer")
         executor.execute {
             localPeer!!.setLocalDescription(
@@ -222,7 +226,7 @@ class Client constructor (private val context: Context, private val peerConnecti
                     CustomSdpObserver("localSetRemote"),
                     SessionDescription(
                         SessionDescription.Type.ANSWER,
-                        signalingMessage.sessionDescription!!.sdp
+                        answer.sdp
                     )
                 )
             } catch (e: JSONException) {
@@ -231,7 +235,7 @@ class Client constructor (private val context: Context, private val peerConnecti
         }
     }
 
-    override fun onIceCandidateReceived(signalingMessage: SignalingMessage) {
+    override fun onIceCandidateReceived(candidate: Candidate) {
         if (firstTime && mode == "listener") {
             runOnUiThread {
                 val statusTextView =
@@ -242,13 +246,13 @@ class Client constructor (private val context: Context, private val peerConnecti
         }
 
         try {
-            var candidate = IceCandidate(
-                signalingMessage.candidate!!.sdpMid,
-                signalingMessage.candidate!!.sdpMLineIndex,
-                signalingMessage.candidate!!.sdp
+            val cnd = IceCandidate(
+                candidate.sdpMid,
+                candidate.sdpMLineIndex,
+                candidate.sdp
             )
             localPeer!!.addIceCandidate(
-                candidate
+                cnd
             )
         } catch (e: JSONException) {
             e.printStackTrace()
@@ -267,7 +271,7 @@ class Client constructor (private val context: Context, private val peerConnecti
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun onNewPeerJoined() {
+    fun sendOffer() {
         executor.execute {
             sdpConstraints = MediaConstraints()
             sdpConstraints.mandatory.add(
@@ -283,7 +287,7 @@ class Client constructor (private val context: Context, private val peerConnecti
 
 
                     Log.e("onCreateSuccess", "SignallingClient emit ")
-                    sendSdp(sessionDescription)
+                    sendSdp(sessionDescription, ClientType.LISTENER, SdpType.OFFER)
                 }
             }, sdpConstraints)
         }

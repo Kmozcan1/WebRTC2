@@ -1,5 +1,29 @@
 package com.vox.sample.vow_poc
 
+import com.google.gson.annotations.SerializedName
+
+data class Message (val type: MessageType? = null, var payload: Any? = null) {
+    companion object {
+        fun handshake(sync: Sync): Message = Message(
+            type = MessageType.HANDSHAKE,
+            payload = sync
+        )
+
+        fun sdp(sdp: SDP): Message = Message (
+            type = MessageType.SDP,
+            payload = sdp
+        )
+
+        fun candidate(candidate: Candidate): Message = Message (
+            type = MessageType.ICE,
+            payload = candidate
+        )
+    }
+}
+data class Sync (
+    var sourceId: String,
+    var clientType: ClientType
+)
 data class SignalingMessage (
     var type: String,
     var sessionDescription: SDP?,
@@ -7,30 +31,45 @@ data class SignalingMessage (
 )
 
 data class SDP (
-    var clientType: String,
+    var clientType: ClientType,
     var sourceId: String,
     var destinationId: String,
     var sdp: String,
     var sdpType: SdpType
 )
 
-enum class SdpType (val rtcSdpType: String) {
-    offer("offer"),
-    answer("answer"),
-    prAnswer("prAnswer")
-}
-
 data class Candidate (
-    var clientType: String,
+    var clientType: ClientType,
     var sourceId: String,
     var destinationId: String,
     var sdp: String,
     var sdpMLineIndex: Int,
-    var sdpMid: String?
+    var sdpMid: String
 )
 
-data class Syn (
-    var clientType: String,
-    var sourceId: String
-)
+enum class ClientType {
+    @SerializedName("listener")
+    LISTENER,
+    @SerializedName("presenter")
+    PRESENTER
+}
 
+enum class SdpType {
+    @SerializedName("offer")
+    OFFER,
+    @SerializedName("answer")
+    ANSWER,
+    @SerializedName("prAnswer")
+    PRANSWER
+}
+
+enum class MessageType(var value: String) {
+    @SerializedName("presenter_list")
+    PRESENTER_LIST("presenter_list"),
+    @SerializedName("handshake")
+    HANDSHAKE("handshake"),
+    @SerializedName("sdp")
+    SDP("sdp"),
+    @SerializedName("ice")
+    ICE("ice")
+}

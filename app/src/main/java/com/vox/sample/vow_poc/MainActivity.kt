@@ -24,7 +24,9 @@ import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.databinding.DataBindingUtil
 import com.vox.sample.vow_poc.R
+import com.vox.sample.vow_poc.databinding.ActivityMainBinding
 import org.webrtc.PeerConnection
 
 
@@ -55,6 +57,18 @@ class MainActivity : AppCompatActivity() {
         )
         setContentView(R.layout.activity_main)
         askForPermissions()
+
+        val binding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding.activity = this
+        binding.executePendingBindings()
+
+        stream_recycler_view.setAdapterWithCustomDivider(
+            LinearLayoutManager(applicationContext),
+            StreamListAdapter(emptyList(), this@MainActivity))
+
+        mode = "listener"
+        socketManager = SocketManager(this, mode)
+        socketManager.initClientSocket()
     }
 
     private fun askForPermissions() {
@@ -79,50 +93,46 @@ class MainActivity : AppCompatActivity() {
         startActivityForResult(intent, PRESENTER)
     }
 
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == Activity.RESULT_OK) {
-            if (requestCode == PRESENTER) {
-            }
-        }
-    }
-
     fun presentStream(view: View) {
         mode = "presenter"
         stream_button.text = "Presenting"
         status_text_view.text = "Presenting"
-        listen_button.visibility = View.GONE
         hangup_button.visibility = View.VISIBLE
         status_text_view.visibility = View.VISIBLE
         stream_button.isEnabled = false
+        stream_recycler_view.visibility = View.INVISIBLE
         socketManager = SocketManager(this, mode)
         socketManager.initServerSocket()
     }
 
     fun listenStream(view: View) {
         mode = "listener"
-        listen_button.text = "Listening"
         status_text_view.text = "Connecting..."
         stream_button.visibility = View.GONE
         hangup_button.visibility = View.VISIBLE
         status_text_view.visibility = View.VISIBLE
-        listen_button.isEnabled = false
         socketManager = SocketManager(this, mode)
         socketManager.initClientSocket()
     }
 
     fun hangupStream(view: View) {
-        listen_button.text = "Listener"
         stream_button.text = "Presenter"
-        listen_button.visibility = View.VISIBLE
         stream_button.visibility = View.VISIBLE
         hangup_button.visibility = View.GONE
         status_text_view.visibility = View.GONE
+        stream_recycler_view.visibility = View.VISIBLE
         stream_button.isEnabled = true
-        listen_button.isEnabled = true
         socketManager.disconnect(mode)
     }
 
+    fun onListClick(streamName: String) {
+        socketManager.connectToStream(streamName)
+        status_text_view.text = "Connecting..."
+        stream_button.visibility = View.GONE
+        hangup_button.visibility = View.VISIBLE
+        stream_recycler_view.visibility = View.INVISIBLE
+        status_text_view.visibility = View.VISIBLE
+    }
 
     //endregion
 

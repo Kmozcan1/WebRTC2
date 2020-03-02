@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
+
+  <data>
+    <variable name="activity" type="com.vox.sample.vow_poc.MainActivity"/>
+    <variable name="streamName" type="String"/>
+  </data>
+
+  <androidx.constraintlayout.widget.ConstraintLayout
+      android:id="@+id/stream_list_item_layout"
+      android:layout_width="match_parent"
+      android:layout_height="60dp"
+      android:onClick="@{() -> activity.onListClick(streamName)}">
+
+    <TextView
+        android:id="@+id/stream_text_view"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:maxLines="2"
+        android:padding="5dp"
+        android:textColor="@color/colorMiddleBlack"
+        android:textSize="16sp"
+        android:textStyle="normal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="@{streamName}" />
+
+  </androidx.constraintlayout.widget.ConstraintLayout>
+
+</layout>

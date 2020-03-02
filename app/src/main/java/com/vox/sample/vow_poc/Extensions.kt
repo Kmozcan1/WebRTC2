@@ -39,7 +39,7 @@ fun RecyclerView.setAdapterWithCustomDivider(layoutManager: RecyclerView.LayoutM
     val a = context.obtainStyledAttributes(attributes)
     val divider = a.getDrawable(0)
     val inset = resources.getDimensionPixelSize(R.dimen.recyclerViewDividerMargin)
-    val insetDivider = InsetDrawable(divider, inset, 0, inset, 0)
+    val insetDivider = InsetDrawable(divider, 0, 0, 0, 0)
     a.recycle()
 
     //Add the divider to the recycler view
