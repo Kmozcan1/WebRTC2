@@ -23,11 +23,9 @@ class Client constructor (private val context: Context, private val peerConnecti
 
     private val iceServers: List<PeerConnection.IceServer> = listOf(
         PeerConnection.IceServer
-            .builder(listOf("turn:global.turn.twilio.com:3478?transport=udp",
-                "turn:global.turn.twilio.com:3478?transport=tcp",
-                "turn:global.turn.twilio.com:443?transport=tcp"))
-            .setUsername("41cce2a71a9d6ca7c9ac717c3182288f16d2a365493d7b3d00f8f984d1ad9747")
-            .setPassword("TI4YxtEGFIn9dFlCX1t2tQywogFSokatPbVKBAzEHTY=")
+            .builder(listOf("turn:numb.viagenie.ca:3478"))
+            .setUsername("kmozcan1@gmail.com")
+            .setPassword("123456")
             .createIceServer()
     )
 

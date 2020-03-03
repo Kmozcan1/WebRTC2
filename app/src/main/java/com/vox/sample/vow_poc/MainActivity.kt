@@ -101,6 +101,7 @@ class MainActivity : AppCompatActivity() {
         status_text_view.visibility = View.VISIBLE
         stream_button.isEnabled = false
         stream_recycler_view.visibility = View.INVISIBLE
+        socketManager.disconnect("listener")
         socketManager = SocketManager(this, mode)
         socketManager.initServerSocket()
     }
@@ -123,6 +124,8 @@ class MainActivity : AppCompatActivity() {
         stream_recycler_view.visibility = View.VISIBLE
         stream_button.isEnabled = true
         socketManager.disconnect(mode)
+        socketManager = SocketManager(this, "listener")
+        socketManager.initClientSocket()
     }
 
     fun onListClick(streamName: String) {

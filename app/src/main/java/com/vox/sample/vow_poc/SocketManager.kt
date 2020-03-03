@@ -120,7 +120,7 @@ class SocketManager (private val context: Context, mode: String) {
         listener?.onAnswerReceived(answer)
     }
 
-    //endregion
+    //endregion 100.24.177.
 
     fun getRecordedAudioToFileController() : RecordedAudioToFileController? {
         return peerConnectionManager.getRecordedAudioToFileController()
@@ -134,7 +134,7 @@ class SocketManager (private val context: Context, mode: String) {
             webRTCPresenter?.close()
         }
         else {
-            listener?.disconnect()
+            webRTCListener?.close()
         }
     }
 
