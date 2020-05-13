@@ -1,4 +1,4 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import android.net.nsd.NsdServiceInfo
 

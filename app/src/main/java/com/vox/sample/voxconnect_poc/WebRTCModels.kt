@@ -1,9 +1,12 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import com.google.gson.annotations.SerializedName
 
 data class Message (val type: MessageType? = null, var payload: Any? = null) {
     companion object {
+        fun join(join: Join): Message = Message(
+            payload = join
+        )
         fun handshake(sync: Sync): Message = Message(
             type = MessageType.HANDSHAKE,
             payload = sync
@@ -20,6 +23,9 @@ data class Message (val type: MessageType? = null, var payload: Any? = null) {
         )
     }
 }
+data class Join (
+    var role: SocketClientType
+)
 data class Sync (
     var sourceId: String,
     var clientType: ClientType
@@ -54,6 +60,13 @@ enum class ClientType {
     PRESENTER
 }
 
+enum class SocketClientType {
+    @SerializedName("listener")
+    LISTENER,
+    @SerializedName("speaker")
+    SPEAKER
+}
+
 enum class SdpType {
     @SerializedName("offer")
     OFFER,
@@ -66,6 +79,8 @@ enum class SdpType {
 enum class MessageType(var value: String) {
     @SerializedName("presenter_list")
     PRESENTER_LIST("presenter_list"),
+    @SerializedName("join")
+    JOIN("join"),
     @SerializedName("handshake")
     HANDSHAKE("handshake"),
     @SerializedName("sdp")

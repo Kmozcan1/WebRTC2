@@ -1,4 +1,4 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import android.graphics.drawable.InsetDrawable
 import android.view.LayoutInflater
@@ -9,7 +9,6 @@ import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.RecyclerView
-import com.vox.sample.vow_poc.R
 
 
 /**

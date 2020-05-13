@@ -1,4 +1,4 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 interface SocketInterface {
     fun onRemoteHangUp(msg: String)

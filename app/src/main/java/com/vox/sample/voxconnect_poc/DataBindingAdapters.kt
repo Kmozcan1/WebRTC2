@@ -1,4 +1,4 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import android.view.View
 import android.widget.ImageView
@@ -6,7 +6,6 @@ import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.databinding.BindingAdapter
-import com.vox.sample.vow_poc.R
 
 /**
  * Created by Kadir Mert Ozcan on 17/07/2019.

@@ -1,2 +1,2 @@
 include ':app'
-rootProject.name='VoW_poc'
+rootProject.name='VoxConnect_PoC'

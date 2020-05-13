@@ -1,21 +1,17 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import android.content.Context
-import android.util.Log
+import android.net.Uri
 import android.view.View
-import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
-import com.microsoft.appcenter.utils.HandlerUtils
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
-import kotlinx.coroutines.*
-import java.io.*
-import java.net.InetSocketAddress
-import java.net.ServerSocket
-import java.net.Socket
-import java.net.URI
-import java.nio.ByteBuffer
-import java.nio.charset.Charset
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import org.phoenixframework.channels.Socket
+import java.util.*
 import java.util.concurrent.Executors
 
 class SocketManager (private val context: Context, mode: String) {
@@ -24,23 +20,36 @@ class SocketManager (private val context: Context, mode: String) {
     private val executor = Executors.newSingleThreadExecutor()
     private var webRTCPresenter: WebRTCPresenter? = null
     private var webRTCListener: WebRTCListener? = null
+    private var listenerChannel: WebRTCListenerPhoenix? = null
+    private var presenterChannel: WebRTCPresenterPhoenix? = null
     private var sourceId: String = ""
     private var destinationId: String = ""
     private var peerConnectionManager: PeerConnectionManager =
         PeerConnectionManager(context, executor, mode)
     private var clientMap = mutableMapOf<String, Client>()
+    private val token = "TOKEN123"
+    private var uuid: String = ""
 
 
     //region PRESENTER
 
-    fun initServerSocket() {
-        GlobalScope.launch(Dispatchers.IO) {
-            webRTCPresenter = WebRTCPresenter(URI("ws://100.24.177.172:8081"), this@SocketManager)
-            webRTCPresenter?.connect()
-        }
+    fun initServerSocket(channelCode: String) {
+        uuid = UUID.randomUUID().toString()
+        val url = Uri.parse( "https://vowdemo.herokuapp.com/vox_socket" ).buildUpon();
+        url.appendQueryParameter( "token", token );
+        url.appendQueryParameter( "uuid", uuid );
+        val socket = Socket(url.build().toString())
+
+        socket.connect()
+
+        //create phoenix channel
+        val payload = Gson().toJson(Join(SocketClientType.SPEAKER)) + "\r\n"
+        val mapper = ObjectMapper()
+        val jsonNode = mapper.readTree(payload)
+        presenterChannel = WebRTCPresenterPhoenix(socket.chan("room:$channelCode", jsonNode), this@SocketManager)
     }
 
-    private fun createPresenter(sourceId: String) {
+    fun createPresenter(sourceId: String) {
         val presenter = Client(
             context,
             peerConnectionManager,
@@ -57,32 +66,38 @@ class SocketManager (private val context: Context, mode: String) {
 
     fun sendCandidate(message: String, mode: String) {
         if (mode == "presenter") {
-            webRTCPresenter?.sendByteBuffer(message)
+            presenterChannel?.sendByteBuffer(message)
         } else {
-            webRTCListener?.sendByteBuffer(message)
+            listenerChannel?.sendByteBuffer(message)
         }
     }
 
     fun sendAnswer(message: String) {
-        webRTCPresenter?.sendByteBuffer(message)
+        presenterChannel?.sendByteBuffer(message)
     }
 
     //endregion
 
     //region LISTENER
 
-    fun initClientSocket() {
-        GlobalScope.launch(Dispatchers.IO) {
-            try {
-                webRTCListener = WebRTCListener(URI("ws://100.24.177.172:8081"), this@SocketManager)
-                webRTCListener?.connect()
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
+    fun connectToStream(channelCode: String) {
+        uuid = UUID.randomUUID().toString()
+        setSourceId(uuid)
+        val url = Uri.parse( "https://vowdemo.herokuapp.com/vox_socket" ).buildUpon();
+        url.appendQueryParameter( "token", token );
+        url.appendQueryParameter( "uuid", uuid );
+        val socket = Socket(url.build().toString())
+
+        socket.connect()
+
+        //create phoenix channel
+        val message = Gson().toJson(Join(SocketClientType.LISTENER)) + "\r\n"
+        val mapper = ObjectMapper()
+        val jsonNode = mapper.readTree(message)
+        listenerChannel = WebRTCListenerPhoenix(socket.chan("room:$channelCode", jsonNode), this@SocketManager)
     }
 
-    private fun createListener() {
+    fun createListener() {
         listener = Client(
             context,
             peerConnectionManager,
@@ -92,7 +107,7 @@ class SocketManager (private val context: Context, mode: String) {
     }
 
     fun sendOffer(message: String) {
-        webRTCListener?.sendByteBuffer(message)
+        listenerChannel?.sendByteBuffer(message)
     }
 
     fun candidateReceived(candidate: Candidate) {
@@ -111,11 +126,6 @@ class SocketManager (private val context: Context, mode: String) {
         }
     }
 
-    fun connectToStream(destinationId: String) {
-        setDestinationId(destinationId)
-        createListener()
-    }
-
     fun answerReceived(answer: SDP) {
         listener?.onAnswerReceived(answer)
     }
@@ -131,10 +141,11 @@ class SocketManager (private val context: Context, mode: String) {
             clientMap.forEach { (_, presenter) ->
                 presenter.disconnect()
             }
-            webRTCPresenter?.close()
+            presenterChannel?.close()
         }
         else {
-            webRTCListener?.close()
+            listener?.disconnect()
+            listenerChannel?.close()
         }
     }
 
@@ -152,5 +163,9 @@ class SocketManager (private val context: Context, mode: String) {
 
     fun getDestinationId() : String {
         return destinationId
+    }
+
+    fun getUUID() : String {
+        return uuid
     }
 }

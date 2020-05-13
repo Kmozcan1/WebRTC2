@@ -1,4 +1,4 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import android.content.Context
 import android.os.Handler
@@ -8,7 +8,6 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import com.google.gson.Gson
-import com.google.gson.JsonObject
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
 import org.json.JSONException
 import org.webrtc.*
@@ -23,9 +22,12 @@ class Client constructor (private val context: Context, private val peerConnecti
 
     private val iceServers: List<PeerConnection.IceServer> = listOf(
         PeerConnection.IceServer
-            .builder(listOf("turn:numb.viagenie.ca:3478"))
-            .setUsername("kmozcan1@gmail.com")
-            .setPassword("123456")
+            .builder(listOf("stun:global.stun.twilio.com:3478?transport=udp",
+                "turn:global.turn.twilio.com:3478?transport=udp",
+                "turn:global.turn.twilio.com:3478?transport=tcp",
+                "turn:global.turn.twilio.com:443?transport=tcp"))
+            .setUsername("eb8db0f66aa3e30bb52a7f33d90d8c6ae123951050081f4b8bb9cbba8ab7c9d6")
+            .setPassword("xp/rpxLnYM0OM6NJMiXOVCtoGS4TJQcrJUjnFQhaCQQ=")
             .createIceServer()
     )
 
@@ -62,19 +64,6 @@ class Client constructor (private val context: Context, private val peerConnecti
                         }
                     }
 
-                    override fun onTrack(rtpReceiver: RtpTransceiver?) {
-                        super.onTrack(rtpReceiver)
-                        if (mode == "listener") {
-                            runOnUiThread {
-                                val recordButton =
-                                    (context as StreamActivity).findViewById<View>(
-                                        R.id.record_button
-                                    ) as Button
-                                val statusTextView =
-                                    (context).findViewById<View>(R.id.status_text_view) as TextView
-                            }
-                        }
-                    }
 
                     override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
                         super.onConnectionChange(newState)

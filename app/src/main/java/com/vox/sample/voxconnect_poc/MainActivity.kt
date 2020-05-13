@@ -1,32 +1,20 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import android.Manifest
-import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.nsd.NsdManager
-import android.net.nsd.NsdServiceInfo
-import android.net.wifi.WifiManager
 import android.os.Bundle
-import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import kotlinx.android.synthetic.main.activity_main.*
-import java.net.InetAddress
-import java.net.UnknownHostException
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import com.microsoft.appcenter.AppCenter
 import com.microsoft.appcenter.analytics.Analytics
 import com.microsoft.appcenter.crashes.Crashes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
-import com.vox.sample.vow_poc.R
-import com.vox.sample.vow_poc.databinding.ActivityMainBinding
+import com.vox.sample.voxconnect_poc.databinding.ActivityMainBinding
 import org.webrtc.PeerConnection
 
 
@@ -65,10 +53,7 @@ class MainActivity : AppCompatActivity() {
         stream_recycler_view.setAdapterWithCustomDivider(
             LinearLayoutManager(applicationContext),
             StreamListAdapter(emptyList(), this@MainActivity))
-
-        mode = "listener"
-        socketManager = SocketManager(this, mode)
-        socketManager.initClientSocket()
+        socketManager = SocketManager(this, "listener")
     }
 
     private fun askForPermissions() {
@@ -86,13 +71,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    private fun startStreamActivity(mode: String) {
-        val intent = Intent(this, StreamActivity::class.java)
-        intent.putExtra("mode", mode)
-        startActivityForResult(intent, PRESENTER)
-    }
-
     fun presentStream(view: View) {
         mode = "presenter"
         stream_button.text = "Presenting"
@@ -100,41 +78,44 @@ class MainActivity : AppCompatActivity() {
         hangup_button.visibility = View.VISIBLE
         status_text_view.visibility = View.VISIBLE
         stream_button.isEnabled = false
-        stream_recycler_view.visibility = View.INVISIBLE
+        listen_button.visibility = View.GONE
         socketManager.disconnect("listener")
         socketManager = SocketManager(this, mode)
-        socketManager.initServerSocket()
+        socketManager.initServerSocket(channel_code_edit_text.text.toString())
     }
 
     fun listenStream(view: View) {
         mode = "listener"
+        listen_button.text = "Listening"
         status_text_view.text = "Connecting..."
-        stream_button.visibility = View.GONE
         hangup_button.visibility = View.VISIBLE
         status_text_view.visibility = View.VISIBLE
+        listen_button.isEnabled = false
+        stream_button.visibility = View.GONE
         socketManager = SocketManager(this, mode)
-        socketManager.initClientSocket()
+        socketManager.connectToStream(channel_code_edit_text.text.toString())
     }
 
     fun hangupStream(view: View) {
         stream_button.text = "Presenter"
         stream_button.visibility = View.VISIBLE
+        listen_button.text = "Listener"
+        listen_button.visibility = View.VISIBLE
         hangup_button.visibility = View.GONE
         status_text_view.visibility = View.GONE
-        stream_recycler_view.visibility = View.VISIBLE
+        //stream_recycler_view.visibility = View.VISIBLE
         stream_button.isEnabled = true
         socketManager.disconnect(mode)
         socketManager = SocketManager(this, "listener")
-        socketManager.initClientSocket()
     }
 
     fun onListClick(streamName: String) {
-        socketManager.connectToStream(streamName)
+        /*socketManager.connectToStream(streamName)
         status_text_view.text = "Connecting..."
         stream_button.visibility = View.GONE
         hangup_button.visibility = View.VISIBLE
-        stream_recycler_view.visibility = View.INVISIBLE
-        status_text_view.visibility = View.VISIBLE
+        //stream_recycler_view.visibility = View.INVISIBLE
+        status_text_view.visibility = View.VISIBLE*/
     }
 
     //endregion

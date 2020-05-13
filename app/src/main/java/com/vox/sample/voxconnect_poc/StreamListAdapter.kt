@@ -1,6 +1,5 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
-import android.net.nsd.NsdServiceInfo
 import android.view.ViewGroup
 import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.widget.RecyclerView

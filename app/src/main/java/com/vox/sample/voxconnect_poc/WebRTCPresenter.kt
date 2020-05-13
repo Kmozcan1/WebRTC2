@@ -1,4 +1,4 @@
-package com.vox.sample.vow_poc
+package com.vox.sample.voxconnect_poc
 
 import com.google.gson.Gson
 import org.java_websocket.client.WebSocketClient
