@@ -35,7 +35,7 @@ class SocketManager (private val context: Context, mode: String) {
 
     fun initServerSocket(channelCode: String) {
         uuid = UUID.randomUUID().toString()
-        val url = Uri.parse( "https://vowdemo.herokuapp.com/vox_socket" ).buildUpon();
+        val url = Uri.parse( "https://vowdemo.herokuapp.com/vow_socket/websocket" ).buildUpon();
         url.appendQueryParameter( "token", token );
         url.appendQueryParameter( "uuid", uuid );
         val socket = Socket(url.build().toString())
@@ -83,7 +83,7 @@ class SocketManager (private val context: Context, mode: String) {
     fun connectToStream(channelCode: String) {
         uuid = UUID.randomUUID().toString()
         setSourceId(uuid)
-        val url = Uri.parse( "https://vowdemo.herokuapp.com/vox_socket" ).buildUpon();
+        val url = Uri.parse( "https://vowdemo.herokuapp.com/vow_socket/websocket" ).buildUpon();
         url.appendQueryParameter( "token", token );
         url.appendQueryParameter( "uuid", uuid );
         val socket = Socket(url.build().toString())

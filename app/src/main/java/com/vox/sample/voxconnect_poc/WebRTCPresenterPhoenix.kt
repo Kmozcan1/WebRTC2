@@ -37,20 +37,15 @@ class WebRTCPresenterPhoenix(private val channel: Channel, private var socketMan
         channel.on("status") { envelope ->
             onStatusUpdate(envelope)
         }
-        channel.on("speaker_msg") { envelope ->
-            onMessage(ByteBuffer.wrap(envelope.toString().toByteArray(Charset.defaultCharset())))
+        channel.on("listener_msg") { envelope ->
+            onMessage(ByteBuffer.wrap(envelope.payload.toString().toByteArray(Charset.defaultCharset())))
         }
-        channel.on(ChannelEvent.ERROR.phxEvent) {
-            var a = 1
-        }
-        socketManager.setSourceId(socketManager.getUUID())
-        socketManager.createPresenter(socketManager.getSourceId())
     }
 
     fun sendByteBuffer(message: String) {
         val mapper = ObjectMapper()
         val jsonNode = mapper.readTree(message)
-        channel.push("listener_msg", jsonNode)
+        channel.push("speaker_msg", jsonNode)
     }
 
     private fun onStatusUpdate(envelope: Envelope) {
@@ -69,20 +64,13 @@ class WebRTCPresenterPhoenix(private val channel: Channel, private var socketMan
         val messageString = msg.array().toString(Charset.defaultCharset())
         val message = Gson().fromJson(messageString, Message::class.java)
 
-        when (message.type) {
-            MessageType.PRESENTER_LIST -> {
-                val streamList = Gson().fromJson<List<String>>(Gson().toJson(message.payload), List::class.java)
-                socketManager.updateStreamList(streamList)
-            }
-            MessageType.SDP -> {
-                val answer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
-                socketManager.setDestinationId(answer.sourceId)
-                socketManager.answerReceived(answer)
-            }
-            MessageType.ICE -> {
-                val candidate = Gson().fromJson(Gson().toJson(message.payload), Candidate::class.java)
-                socketManager.candidateReceived(candidate)
-            }
+        if (message.type == MessageType.SDP) {
+            val offer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
+            socketManager.setDestinationId(offer.sourceId)
+            socketManager.offerReceived(offer)
+        } else if (message.type == MessageType.ICE) {
+            val candidate = Gson().fromJson(Gson().toJson(message.payload), Candidate::class.java)
+            socketManager.candidateReceived(candidate)
         }
     }
 }

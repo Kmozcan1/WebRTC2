@@ -105,6 +105,7 @@ class MainActivity : AppCompatActivity() {
         status_text_view.visibility = View.GONE
         //stream_recycler_view.visibility = View.VISIBLE
         stream_button.isEnabled = true
+        listen_button.isEnabled = true
         socketManager.disconnect(mode)
         socketManager = SocketManager(this, "listener")
     }
