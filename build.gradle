@@ -3,7 +3,7 @@ ext {
     // Version generator
     vow_ver = [
             major: 1,
-            minor: 6,
+            minor: 0,
             patch: 0,
             build: 0
     ]

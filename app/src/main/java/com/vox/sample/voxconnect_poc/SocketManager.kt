@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.view.View
 import androidx.recyclerview.widget.RecyclerView
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
@@ -29,6 +30,7 @@ class SocketManager (private val context: Context, mode: String) {
     private var clientMap = mutableMapOf<String, Client>()
     private val token = "TOKEN123"
     private var uuid: String = ""
+    private lateinit var twilioCredentials: TwilioCredentials
 
 
     //region PRESENTER
@@ -54,6 +56,7 @@ class SocketManager (private val context: Context, mode: String) {
             context,
             peerConnectionManager,
             "presenter",
+            twilioCredentials,
             this@SocketManager
         )
         clientMap[sourceId] = presenter
@@ -102,6 +105,7 @@ class SocketManager (private val context: Context, mode: String) {
             context,
             peerConnectionManager,
             "listener",
+            twilioCredentials,
             this@SocketManager
         )
     }
@@ -147,6 +151,18 @@ class SocketManager (private val context: Context, mode: String) {
             listener?.disconnect()
             listenerChannel?.close()
         }
+    }
+
+    fun parseTwilioCredentials(payload: JsonNode) {
+        val twilioCreds = payload["response"]["twilio_creds"]
+        val serverInfo = twilioCreds["ice_servers"]
+        val iceServers = mutableListOf<String>()
+        val userName = twilioCreds["username"].toString()
+        val password = twilioCreds["password"].toString()
+        for (server in serverInfo) {
+            iceServers.add(server["url"].toString())
+        }
+        twilioCredentials = TwilioCredentials(userName, password, iceServers)
     }
 
     fun setSourceId(sourceId: String) {

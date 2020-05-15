@@ -21,6 +21,7 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
             .receive("ok"
             ) { envelope ->
                 Log.d("Channel", "Joined with $envelope")
+                socketManager.parseTwilioCredentials(envelope.payload)
                 socketManager.setSourceId(socketManager.getUUID())
                 socketManager.createListener()
             }
@@ -28,7 +29,7 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
             onStatusUpdate(envelope)
         }
         channel.on("speaker_msg") { envelope ->
-            onMessage(ByteBuffer.wrap(envelope.payload.toString().toByteArray(Charset.defaultCharset())))
+            onMessage(ByteBuffer.wrap(envelope.payload["message"].toString().toByteArray(Charset.defaultCharset())))
         }
     }
 

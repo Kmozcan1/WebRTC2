@@ -1,6 +1,7 @@
 package com.vox.sample.voxconnect_poc
 
 import android.util.Log
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
 import org.java_websocket.handshake.ServerHandshake
@@ -27,8 +28,8 @@ class WebRTCPresenterPhoenix(private val channel: Channel, private var socketMan
             .receive("ok")
             { envelope ->
                 Log.d("Channel", "Joined with $envelope")
+                socketManager.parseTwilioCredentials(envelope.payload)
                 socketManager.setSourceId(socketManager.getUUID())
-                socketManager.createPresenter(socketManager.getSourceId())
             }
             .receive("error")
             { envelope ->
@@ -42,9 +43,13 @@ class WebRTCPresenterPhoenix(private val channel: Channel, private var socketMan
         }
     }
 
+
+
     fun sendByteBuffer(message: String) {
+        val messageObject: Message = Gson().fromJson(message, Message::class.java)
+        val speakerMessage = Gson().toJson(SpeakerMessage(socketManager.getDestinationId(), messageObject)) + "\r\n"
         val mapper = ObjectMapper()
-        val jsonNode = mapper.readTree(message)
+        val jsonNode = mapper.readTree(speakerMessage)
         channel.push("speaker_msg", jsonNode)
     }
 

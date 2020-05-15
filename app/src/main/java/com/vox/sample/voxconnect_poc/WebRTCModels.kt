@@ -26,6 +26,10 @@ data class Message (val type: MessageType? = null, var payload: Any? = null) {
 data class Join (
     var role: SocketClientType
 )
+data class SpeakerMessage(
+    var to: String,
+    var message: Message
+)
 data class Sync (
     var sourceId: String,
     var clientType: ClientType
@@ -51,6 +55,12 @@ data class Candidate (
     var sdp: String,
     var sdpMLineIndex: Int,
     var sdpMid: String
+)
+
+data class TwilioCredentials (
+    var userName: String,
+    var password: String,
+    var iceServers: List<String>
 )
 
 enum class ClientType {

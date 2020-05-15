@@ -14,7 +14,11 @@ import org.webrtc.*
 import java.util.concurrent.Executors
 
 
-class Client constructor (private val context: Context, private val peerConnectionManager: PeerConnectionManager, private val mode: String, private val socketManager: SocketManager):
+class Client constructor (private val context: Context,
+                          private val peerConnectionManager: PeerConnectionManager,
+                          private val mode: String,
+                          private val twilioCredentials: TwilioCredentials,
+                          private val socketManager: SocketManager):
     SocketInterface {
     private lateinit var sdpConstraints: MediaConstraints
     private var peerConnectionFactory: PeerConnectionFactory = peerConnectionManager.getPeerConnectionFactory()
@@ -22,12 +26,9 @@ class Client constructor (private val context: Context, private val peerConnecti
 
     private val iceServers: List<PeerConnection.IceServer> = listOf(
         PeerConnection.IceServer
-            .builder(listOf("stun:global.stun.twilio.com:3478?transport=udp",
-                "turn:global.turn.twilio.com:3478?transport=udp",
-                "turn:global.turn.twilio.com:3478?transport=tcp",
-                "turn:global.turn.twilio.com:443?transport=tcp"))
-            .setUsername("eb8db0f66aa3e30bb52a7f33d90d8c6ae123951050081f4b8bb9cbba8ab7c9d6")
-            .setPassword("xp/rpxLnYM0OM6NJMiXOVCtoGS4TJQcrJUjnFQhaCQQ=")
+            .builder(twilioCredentials.iceServers)
+            .setUsername(twilioCredentials.userName)
+            .setPassword(twilioCredentials.password)
             .createIceServer()
     )
 
@@ -39,9 +40,11 @@ class Client constructor (private val context: Context, private val peerConnecti
     private lateinit var localDescription: SessionDescription
 
     init {
-        createPeerConnection()
-        if (mode == "listener") {
-            sendOffer()
+        executor.execute {
+            createPeerConnection()
+            if (mode == "listener") {
+                sendOffer()
+            }
         }
     }
 
@@ -49,47 +52,51 @@ class Client constructor (private val context: Context, private val peerConnecti
         val rtcConfig = PeerConnection.RTCConfiguration(iceServers)
 
         executor.execute {
-            localPeer = peerConnectionFactory.createPeerConnection(
-                rtcConfig,
-                object : CustomPeerConnectionObserver("localPeerCreation") {
-                    override fun onIceCandidate(iceCandidate: IceCandidate) {
-                        super.onIceCandidate(iceCandidate)
-                        onIceCandidateReceived(iceCandidate)
-                    }
-                    override fun onAddTrack(rtpReceiver: RtpReceiver?,
-                                            mediaStreams: Array<out MediaStream>?) {
-                        super.onAddTrack(rtpReceiver, mediaStreams)
-                        if (mode == "presenter") {
-                            mediaStreams!![0].audioTracks[0].setEnabled(false)
+            try {
+                localPeer = peerConnectionFactory.createPeerConnection(
+                    rtcConfig,
+                    object : CustomPeerConnectionObserver("localPeerCreation") {
+                        override fun onIceCandidate(iceCandidate: IceCandidate) {
+                            super.onIceCandidate(iceCandidate)
+                            onIceCandidateReceived(iceCandidate)
                         }
-                    }
-
-
-                    override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
-                        super.onConnectionChange(newState)
-                        if (newState == PeerConnection.PeerConnectionState.DISCONNECTED && mode == "listener") {
-                            runOnUiThread {
-                                showToast("Presenter closed the stream")
-                                val hangupButton =
-                                    (context as MainActivity).findViewById<View>(
-                                        R.id.hangup_button
-                                    ) as Button
-                                hangupButton.performClick()
-                                localPeer?.close()
+                        override fun onAddTrack(rtpReceiver: RtpReceiver?,
+                                                mediaStreams: Array<out MediaStream>?) {
+                            super.onAddTrack(rtpReceiver, mediaStreams)
+                            if (mode == "presenter") {
+                                mediaStreams!![0].audioTracks[0].setEnabled(false)
                             }
                         }
-                    }
 
-                    override fun onAddStream(mediaStream: MediaStream?) {
-                        super.onAddStream(mediaStream)
-                        if (mode == "listener") {
-                            runOnUiThread {
+
+                        override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
+                            super.onConnectionChange(newState)
+                            if (newState == PeerConnection.PeerConnectionState.DISCONNECTED && mode == "listener") {
+                                runOnUiThread {
+                                    showToast("Presenter closed the stream")
+                                    val hangupButton =
+                                        (context as MainActivity).findViewById<View>(
+                                            R.id.hangup_button
+                                        ) as Button
+                                    hangupButton.performClick()
+                                    localPeer?.close()
+                                }
                             }
                         }
-                    }
-                })!!
-            if (mode == "presenter") {
-                addStreamToLocalPeer()
+
+                        override fun onAddStream(mediaStream: MediaStream?) {
+                            super.onAddStream(mediaStream)
+                            if (mode == "listener") {
+                                runOnUiThread {
+                                }
+                            }
+                        }
+                    })!!
+                if (mode == "presenter") {
+                    addStreamToLocalPeer()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -135,8 +142,11 @@ class Client constructor (private val context: Context, private val peerConnecti
                 sdpType
                 )
 
-            val message = Gson().toJson(Message.sdp(sdp)) + "\r\n"
+            var message = Gson().toJson(Message.sdp(sdp))
 
+            if (mode == "listener") {
+                message += "\r\n"
+            }
             if (mode == "listener") {
                 socketManager.sendOffer(message)
                 Log.e("Socket", "sending offer to the server")
@@ -161,7 +171,10 @@ class Client constructor (private val context: Context, private val peerConnecti
             val candidate =
                 Candidate(clientType, socketManager.getSourceId(), socketManager.getDestinationId(),
                     iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
-            val message = Gson().toJson(Message.candidate(candidate)) + "\r\n"
+            var message = Gson().toJson(Message.candidate(candidate))
+            if (mode == "listener") {
+                message += "\r\n"
+            }
             socketManager.sendCandidate(message, mode)
         } catch (e: Exception) {
             e.printStackTrace()
