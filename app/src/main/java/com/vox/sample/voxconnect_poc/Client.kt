@@ -98,7 +98,9 @@ class Client constructor (private val context: Context,
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-            onOfferReceived(socketManager.getSDP())
+            if (mode == "presenter") {
+                onOfferReceived(socketManager.getSDP())
+            }
         }
     }
 
