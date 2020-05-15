@@ -98,6 +98,7 @@ class Client constructor (private val context: Context,
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+            onOfferReceived(socketManager.getSDP())
         }
     }
 
@@ -185,14 +186,14 @@ class Client constructor (private val context: Context,
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun onOfferReceived(offer: SDP) {
+    override fun onOfferReceived(offer: SDP?) {
         showToast("Received Offer")
 
         executor.execute {
             localPeer!!.setRemoteDescription(
                 CustomSdpObserver("localSetRemote"),
                 SessionDescription(SessionDescription.Type.OFFER,
-                    offer.sdp
+                    offer!!.sdp
                 )
             )
             answer()

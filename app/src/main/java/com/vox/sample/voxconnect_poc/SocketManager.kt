@@ -17,6 +17,7 @@ import java.util.concurrent.Executors
 
 class SocketManager (private val context: Context, mode: String) {
 
+    private var offer: SDP? = null
     private var listener: Client? = null
     private val executor = Executors.newSingleThreadExecutor()
     private var webRTCPresenter: WebRTCPresenter? = null
@@ -51,7 +52,7 @@ class SocketManager (private val context: Context, mode: String) {
         presenterChannel = WebRTCPresenterPhoenix(socket.chan("room:$channelCode", jsonNode), this@SocketManager)
     }
 
-    fun createPresenter(sourceId: String) {
+    fun createPresenter(offer: SDP) {
         val presenter = Client(
             context,
             peerConnectionManager,
@@ -59,12 +60,12 @@ class SocketManager (private val context: Context, mode: String) {
             twilioCredentials,
             this@SocketManager
         )
-        clientMap[sourceId] = presenter
+        clientMap[offer.sourceId] = presenter
     }
 
     fun offerReceived(offer: SDP) {
-        createPresenter(offer.sourceId)
-        clientMap[offer.sourceId]?.onOfferReceived(offer)
+        this.offer = offer
+        createPresenter(offer)
     }
 
     fun sendCandidate(message: String, mode: String) {
@@ -160,7 +161,7 @@ class SocketManager (private val context: Context, mode: String) {
         val userName = twilioCreds["username"].toString()
         val password = twilioCreds["password"].toString()
         for (server in serverInfo) {
-            iceServers.add(server["url"].toString())
+            iceServers.add(server["url"].toString().replace("\"", ""))
         }
         twilioCredentials = TwilioCredentials(userName, password, iceServers)
     }
@@ -183,5 +184,9 @@ class SocketManager (private val context: Context, mode: String) {
 
     fun getUUID() : String {
         return uuid
+    }
+
+    fun getSDP() : SDP? {
+        return offer
     }
 }
