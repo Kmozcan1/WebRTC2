@@ -2,7 +2,9 @@ package com.vox.sample.voxconnect_poc
 
 import android.content.Context
 import android.net.Uri
+import android.os.Handler
 import android.view.View
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -15,7 +17,7 @@ import org.phoenixframework.channels.Socket
 import java.util.*
 import java.util.concurrent.Executors
 
-class SocketManager (private val context: Context, mode: String) {
+class SocketManager (val context: Context, mode: String) {
 
     private var offer: SDP? = null
     private var listener: Client? = null
@@ -32,6 +34,7 @@ class SocketManager (private val context: Context, mode: String) {
     private val token = "TOKEN123"
     private var uuid: String = ""
     private lateinit var twilioCredentials: TwilioCredentials
+    private lateinit var handler: Handler
 
 
     //region PRESENTER
@@ -164,6 +167,13 @@ class SocketManager (private val context: Context, mode: String) {
             iceServers.add(server["url"].toString().replace("\"", ""))
         }
         twilioCredentials = TwilioCredentials(userName, password, iceServers)
+    }
+
+    fun showToast(message: String) {
+        handler = Handler(context.mainLooper)
+        runOnUiThread(Runnable {
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        })
     }
 
     fun setSourceId(sourceId: String) {

@@ -1,8 +1,12 @@
 package com.vox.sample.voxconnect_poc
 
 import android.util.Log
+import android.view.View
+import android.widget.Button
+import android.widget.TextView
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
+import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
 import org.java_websocket.handshake.ServerHandshake
 import org.phoenixframework.channels.Channel
 import org.phoenixframework.channels.Envelope
@@ -22,8 +26,17 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
             ) { envelope ->
                 Log.d("Channel", "Joined with $envelope")
                 socketManager.parseTwilioCredentials(envelope.payload)
-                socketManager.setSourceId(socketManager.getUUID())
-                socketManager.createListener()
+                if (envelope.payload["response"]["speaker_status"]["status"].toString() == "\"offline\"") {
+                    runOnUiThread {
+                        val statusTextView =
+                            (socketManager.context as MainActivity).findViewById<View>(R.id.status_text_view) as TextView
+                        statusTextView.text = "Waiting for the Presenter..."
+                    }
+
+                } else if (envelope.payload["response"]["speaker_status"]["status"].toString() == "\"online\"") {
+                    socketManager.setSourceId(socketManager.getUUID())
+                    socketManager.createListener()
+                }
             }
         channel.on("status") { envelope ->
             onStatusUpdate(envelope)
@@ -47,7 +60,21 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
     }
 
     private fun onStatusUpdate(envelope: Envelope) {
-
+        val status = envelope.payload["status"].toString().replace("\"", "")
+        if (status == "offline") {
+            runOnUiThread {
+                socketManager.showToast("Presenter closed the stream")
+                val hangupButton =
+                    (socketManager.context as MainActivity).findViewById<View>(
+                        R.id.hangup_button
+                    ) as Button
+                hangupButton.performClick()
+            }
+            socketManager.disconnect("listener")
+        } else if (status == "online") {
+            socketManager.setSourceId(socketManager.getUUID())
+            socketManager.createListener()
+        }
     }
 
 

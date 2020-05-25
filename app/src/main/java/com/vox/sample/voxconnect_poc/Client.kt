@@ -72,15 +72,7 @@ class Client constructor (private val context: Context,
                         override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
                             super.onConnectionChange(newState)
                             if (newState == PeerConnection.PeerConnectionState.DISCONNECTED && mode == "listener") {
-                                runOnUiThread {
-                                    showToast("Presenter closed the stream")
-                                    val hangupButton =
-                                        (context as MainActivity).findViewById<View>(
-                                            R.id.hangup_button
-                                        ) as Button
-                                    hangupButton.performClick()
-                                    localPeer?.close()
-                                }
+
                             }
                         }
 
