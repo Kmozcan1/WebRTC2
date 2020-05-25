@@ -7,13 +7,10 @@ import android.widget.TextView
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
-import org.java_websocket.handshake.ServerHandshake
 import org.phoenixframework.channels.Channel
 import org.phoenixframework.channels.Envelope
-import org.phoenixframework.channels.IMessageCallback
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.util.*
 
 
 class WebRTCListenerPhoenix(private val channel: Channel, private var socketManager: SocketManager) {
@@ -89,12 +86,11 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
             }
             MessageType.SDP -> {
                 val answer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
-                socketManager.setDestinationId(answer.sourceId)
+                socketManager.setDestinationId(message.src)
                 socketManager.answerReceived(answer)
             }
-            MessageType.ICE -> {
-                val candidate = Gson().fromJson(Gson().toJson(message.payload), Candidate::class.java)
-                socketManager.candidateReceived(candidate)
+            MessageType.CANDIDATE -> {
+                socketManager.candidateReceived(message)
             }
         }
     }

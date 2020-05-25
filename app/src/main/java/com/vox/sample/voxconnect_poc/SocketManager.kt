@@ -10,8 +10,6 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import org.phoenixframework.channels.Socket
 import java.util.*
@@ -22,8 +20,6 @@ class SocketManager (val context: Context, mode: String) {
     private var offer: SDP? = null
     private var listener: Client? = null
     private val executor = Executors.newSingleThreadExecutor()
-    private var webRTCPresenter: WebRTCPresenter? = null
-    private var webRTCListener: WebRTCListener? = null
     private var listenerChannel: WebRTCListenerPhoenix? = null
     private var presenterChannel: WebRTCPresenterPhoenix? = null
     private var sourceId: String = ""
@@ -55,7 +51,8 @@ class SocketManager (val context: Context, mode: String) {
         presenterChannel = WebRTCPresenterPhoenix(socket.chan("room:$channelCode", jsonNode), this@SocketManager)
     }
 
-    fun createPresenter(offer: SDP) {
+    private fun createPresenter(message: Message) {
+        offer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
         val presenter = Client(
             context,
             peerConnectionManager,
@@ -63,12 +60,12 @@ class SocketManager (val context: Context, mode: String) {
             twilioCredentials,
             this@SocketManager
         )
-        clientMap[offer.sourceId] = presenter
+        clientMap[message.src!!] = presenter
+
     }
 
-    fun offerReceived(offer: SDP) {
-        this.offer = offer
-        createPresenter(offer)
+    fun offerReceived(message: Message) {
+        createPresenter(message)
     }
 
     fun sendCandidate(message: String, mode: String) {
@@ -118,11 +115,13 @@ class SocketManager (val context: Context, mode: String) {
         listenerChannel?.sendByteBuffer(message)
     }
 
-    fun candidateReceived(candidate: Candidate) {
+    fun candidateReceived(message: Message) {
+        val candidate = Gson().fromJson(Gson().toJson(message.payload), Candidate::class.java)
+
         if (candidate.clientType == ClientType.PRESENTER) {
             listener?.onIceCandidateReceived(candidate)
         } else {
-            clientMap[candidate.sourceId]?.onIceCandidateReceived(candidate)
+            clientMap[message.src]?.onIceCandidateReceived(candidate)
         }
     }
 
@@ -184,8 +183,8 @@ class SocketManager (val context: Context, mode: String) {
         return sourceId
     }
 
-    fun setDestinationId(destinationId: String) {
-        this.destinationId = destinationId
+    fun setDestinationId(destinationId: String?) {
+        this.destinationId = destinationId!!
     }
 
     fun getDestinationId() : String {

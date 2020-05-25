@@ -2,7 +2,7 @@ package com.vox.sample.voxconnect_poc
 
 import com.google.gson.annotations.SerializedName
 
-data class Message (val type: MessageType? = null, var payload: Any? = null) {
+data class Message (val src: String? = null, val type: MessageType? = null, var payload: Any? = null) {
     companion object {
         fun join(join: Join): Message = Message(
             payload = join
@@ -12,20 +12,23 @@ data class Message (val type: MessageType? = null, var payload: Any? = null) {
             payload = sync
         )
 
-        fun sdp(sdp: SDP): Message = Message (
+        fun sdp(source: String?, sdp: SDP): Message = Message (
+            src = source,
             type = MessageType.SDP,
             payload = sdp
         )
 
         fun candidate(candidate: Candidate): Message = Message (
-            type = MessageType.ICE,
+            type = MessageType.CANDIDATE,
             payload = candidate
         )
     }
 }
+
 data class Join (
     var role: SocketClientType
 )
+
 data class SpeakerMessage(
     var to: String,
     var message: Message
@@ -42,16 +45,12 @@ data class SignalingMessage (
 
 data class SDP (
     var clientType: ClientType,
-    var sourceId: String,
-    var destinationId: String,
     var sdp: String,
     var sdpType: SdpType
 )
 
 data class Candidate (
     var clientType: ClientType,
-    var sourceId: String,
-    var destinationId: String,
     var sdp: String,
     var sdpMLineIndex: Int,
     var sdpMid: String
@@ -95,6 +94,6 @@ enum class MessageType(var value: String) {
     HANDSHAKE("handshake"),
     @SerializedName("sdp")
     SDP("sdp"),
-    @SerializedName("ice")
-    ICE("ice")
+    @SerializedName("candidate")
+    CANDIDATE("candidate")
 }

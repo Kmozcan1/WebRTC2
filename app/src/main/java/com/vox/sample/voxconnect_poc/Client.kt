@@ -131,13 +131,11 @@ class Client constructor (private val context: Context,
     fun sendSdp(sessionDescription: SessionDescription, clientType: ClientType, sdpType: SdpType) {
         try {
             val sdp = SDP(clientType,
-                socketManager.getSourceId(),
-                socketManager.getDestinationId(),
                 sessionDescription.description,
                 sdpType
                 )
 
-            var message = Gson().toJson(Message.sdp(sdp))
+            var message = Gson().toJson(Message.sdp(socketManager.getSourceId(), sdp))
 
             if (mode == "listener") {
                 message += "\r\n"
@@ -164,8 +162,7 @@ class Client constructor (private val context: Context,
                 ClientType.LISTENER
             }
             val candidate =
-                Candidate(clientType, socketManager.getSourceId(), socketManager.getDestinationId(),
-                    iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
+                Candidate(clientType, iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
             var message = Gson().toJson(Message.candidate(candidate))
             if (mode == "listener") {
                 message += "\r\n"
@@ -242,13 +239,14 @@ class Client constructor (private val context: Context,
 
         try {
             val cnd = IceCandidate(
-                candidate.sdpMid,
+                "audio",
                 candidate.sdpMLineIndex,
                 candidate.sdp
             )
             localPeer!!.addIceCandidate(
                 cnd
             )
+
         } catch (e: JSONException) {
             e.printStackTrace()
         }

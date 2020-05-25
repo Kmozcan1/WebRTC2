@@ -1,17 +1,12 @@
 package com.vox.sample.voxconnect_poc
 
 import android.util.Log
-import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
-import org.java_websocket.handshake.ServerHandshake
 import org.phoenixframework.channels.Channel
-import org.phoenixframework.channels.ChannelEvent
 import org.phoenixframework.channels.Envelope
-import org.phoenixframework.channels.IMessageCallback
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
-import java.util.*
 
 
 class WebRTCPresenterPhoenix(private val channel: Channel, private var socketManager: SocketManager) {
@@ -70,12 +65,10 @@ class WebRTCPresenterPhoenix(private val channel: Channel, private var socketMan
         val message = Gson().fromJson(messageString, Message::class.java)
 
         if (message.type == MessageType.SDP) {
-            val offer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
-            socketManager.setDestinationId(offer.sourceId)
-            socketManager.offerReceived(offer)
-        } else if (message.type == MessageType.ICE) {
-            val candidate = Gson().fromJson(Gson().toJson(message.payload), Candidate::class.java)
-            socketManager.candidateReceived(candidate)
+            socketManager.setDestinationId(message.src)
+            socketManager.offerReceived(message)
+        } else if (message.type == MessageType.CANDIDATE) {
+            socketManager.candidateReceived(message)
         }
     }
 }
