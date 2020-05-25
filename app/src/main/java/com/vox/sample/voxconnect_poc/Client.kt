@@ -239,7 +239,7 @@ class Client constructor (private val context: Context,
 
         try {
             val cnd = IceCandidate(
-                "audio",
+                candidate.sdpMid,
                 candidate.sdpMLineIndex,
                 candidate.sdp
             )
