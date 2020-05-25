@@ -238,6 +238,7 @@ class Client constructor (private val context: Context,
         }
 
         try {
+
             val cnd = IceCandidate(
                 candidate.sdpMid,
                 candidate.sdpMLineIndex,
