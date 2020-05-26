@@ -135,11 +135,8 @@ class Client constructor (private val context: Context,
                 sdpType
                 )
 
-            var message = Gson().toJson(Message.sdp(socketManager.getSourceId(), sdp))
+            var message = Gson().toJson(Message.sdp(socketManager.getSourceId(), sdp)) + "\r\n"
 
-            if (mode == "listener") {
-                message += "\r\n"
-            }
             if (mode == "listener") {
                 socketManager.sendOffer(message)
                 Log.e("Socket", "sending offer to the server")
@@ -163,10 +160,7 @@ class Client constructor (private val context: Context,
             }
             val candidate =
                 Candidate(clientType, iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
-            var message = Gson().toJson(Message.candidate(candidate))
-            if (mode == "listener") {
-                message += "\r\n"
-            }
+            var message = Gson().toJson(Message.candidate(candidate, socketManager.getDestinationId())) + "\r\n"
             socketManager.sendCandidate(message, mode)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -244,13 +238,14 @@ class Client constructor (private val context: Context,
                 candidate.sdpMLineIndex,
                 candidate.sdp
             )
-            localPeer!!.addIceCandidate(
+            /*localPeer!!.addIceCandidate(
                 cnd
-            )
+            )*/
 
         } catch (e: JSONException) {
             e.printStackTrace()
         }
+
     }
 
     override fun onTryToStart() {

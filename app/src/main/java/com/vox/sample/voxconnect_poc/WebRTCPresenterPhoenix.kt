@@ -41,10 +41,8 @@ class WebRTCPresenterPhoenix(private val channel: Channel, private var socketMan
 
 
     fun sendByteBuffer(message: String) {
-        val messageObject: Message = Gson().fromJson(message, Message::class.java)
-        val speakerMessage = Gson().toJson(SpeakerMessage(socketManager.getDestinationId(), messageObject)) + "\r\n"
         val mapper = ObjectMapper()
-        val jsonNode = mapper.readTree(speakerMessage)
+        val jsonNode = mapper.readTree(message)
         channel.push("speaker_msg", jsonNode)
     }
 

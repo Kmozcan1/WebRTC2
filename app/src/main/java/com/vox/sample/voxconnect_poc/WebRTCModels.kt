@@ -2,7 +2,10 @@ package com.vox.sample.voxconnect_poc
 
 import com.google.gson.annotations.SerializedName
 
-data class Message (val src: String? = null, val type: MessageType? = null, var payload: Any? = null) {
+data class Message (val src: String? = null,
+                    val type: MessageType? = null,
+                    var payload: Any? = null,
+                    val to: String? = null) {
     companion object {
         fun join(join: Join): Message = Message(
             payload = join
@@ -18,8 +21,9 @@ data class Message (val src: String? = null, val type: MessageType? = null, var 
             payload = sdp
         )
 
-        fun candidate(candidate: Candidate): Message = Message (
+        fun candidate(candidate: Candidate, destination: String?): Message = Message (
             type = MessageType.CANDIDATE,
+            to = destination,
             payload = candidate
         )
     }
@@ -29,10 +33,6 @@ data class Join (
     var role: SocketClientType
 )
 
-data class SpeakerMessage(
-    var to: String,
-    var message: Message
-)
 data class Sync (
     var sourceId: String,
     var clientType: ClientType
