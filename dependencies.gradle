@@ -1,0 +1,105 @@
+ext {
+    //=== Build Config ===
+    build_config = [
+            package          : "com.sumitanantwar.ottonova_test",
+            compileSdkVersion: 28,
+            targetSdkVersion : 28,
+            minSdkVersion    : 21,
+    ]
+
+    //=== App Version generator ===
+    app_ver = [
+            major: 0,
+            minor: 1,
+            patch: 0,
+            build: 0
+    ]
+
+    versionCode = app_ver.major * 1000000 + app_ver.minor * 10000 + app_ver.patch * 100 + app_ver.build
+    versionName = "$app_ver.major.$app_ver.minor.$app_ver.patch"
+
+
+    //=== Dependencies ===
+    dependency = [
+
+            // Kotlin
+            kotlin              : "org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.3.71",
+            kotlin_test         : "org.jetbrains.kotlin:kotlin-test-junit:1.3.71",
+
+            // Firebase
+            firebase_auth       : "com.google.firebase:firebase-auth:19.2.0",
+            firebase_crashlytics: "com.google.firebase:firebase-crashlytics:17.0.0-beta03",
+            firebase_analytics  : "com.google.firebase:firebase-analytics:17.2.3",
+            firebase_core       : "com.google.firebase:firebase-core:17.2.3",
+
+            // AndroidX
+            andx_core           : "androidx.core:core-ktx:1.2.0",
+            legacy_support      : "androidx.legacy:legacy-support-v4:1.0.0",
+            appcompat           : "androidx.appcompat:appcompat:1.1.0",
+            lifecycle           : "androidx.lifecycle:lifecycle-extensions:2.2.0",
+            constraintLayout    : "androidx.constraintlayout:constraintlayout:1.1.3",
+            material            : "com.google.android.material:material:1.1.0",
+            fragment            : "androidx.fragment:fragment:1.3.0-alpha03",
+            nav_fragment        : "androidx.navigation:navigation-fragment:2.2.1",
+            nav_ui              : "androidx.navigation:navigation-ui:2.2.1",
+            nav_fragment_ktx    : "androidx.navigation:navigation-fragment-ktx:2.2.1",
+            nav_ui_ktx          : "androidx.navigation:navigation-ui-ktx:2.2.1",
+
+            sectioned_adapter   : "io.github.luizgrp.sectionedrecyclerviewadapter:sectionedrecyclerviewadapter:3.1.0",
+
+            // Timber
+            timber              : "com.jakewharton.timber:timber:4.7.1",
+
+            // Rx
+            rx_java             : "io.reactivex.rxjava2:rxjava:2.2.19",
+            rx_android          : "io.reactivex.rxjava2:rxandroid:2.1.1",
+            rx_kotlin           : "io.reactivex.rxjava2:rxkotlin:2.4.0",
+            rx_binding          : "com.jakewharton.rxbinding3:rxbinding:3.1.0",
+            rx_binding_core     : "com.jakewharton.rxbinding3:rxbinding-core:3.1.0",
+
+            // Room
+            room                : "androidx.room:room-runtime:2.2.5",
+            room_compiler       : "androidx.room:room-compiler:2.2.5",
+            room_ktx            : "androidx.room:room-ktx:2.2.5",
+            room_rx             : "androidx.room:room-rxjava2:2.2.5",
+
+            // Glide
+            glide               : "com.github.bumptech.glide:glide:4.8.0",
+            glide_compiler      : "com.github.bumptech.glide:compiler:4.8.0",
+
+            // Dagger
+            dagger              : "com.google.dagger:dagger:2.27",
+            dagger_compiler      : "com.google.dagger:dagger-compiler:2.27",
+            dagger_android       : "com.google.dagger:dagger-android-support:2.27",
+            dagger_processor     : "com.google.dagger:dagger-android-processor:2.27",
+            javax_annotation     : "javax.annotation:jsr250-api:1.0",
+            javax_inject         : "javax.inject:javax.inject:1",
+
+            // Retrofit
+            moshi               : "com.squareup.moshi:moshi:1.8.0",
+            retrofit            : "com.squareup.retrofit2:retrofit:2.5.0",
+            retrofit_adapter    : "com.squareup.retrofit2:adapter-rxjava2:2.5.0",
+            moshi_converter     : "com.squareup.retrofit2:converter-moshi:2.5.0",
+            okhttp_android      : "com.squareup.okhttp3:okhttp-android-support:3.9.1",
+            okhttp_logger       : "com.squareup.okhttp3:logging-interceptor:3.9.1",
+
+            // Stetho
+            stetho              : "com.facebook.stetho:stetho:1.5.0",
+            okHttpStetho        : "com.facebook.stetho:stetho-okhttp3:1.5.0",
+
+            // Lottie
+            lottie              : "com.airbnb.android:lottie:3.4.0",
+
+            // Tests
+            junit               : "junit:junit:4.13",
+            andx_junit          : "androidx.test.ext:junit:1.1.1",
+            mockito_kotlin      : "com.nhaarman.mockitokotlin2:mockito-kotlin:2.2.0",
+            mockito_android     : "org.mockito:mockito-android:2.24.5",
+            hamcrest            : "org.hamcrest:hamcrest-library:1.3",
+            test_runner         : "androidx.test:runner:1.2.0",
+            test_rules          : "androidx.test:rules:1.2.0",
+            espresso_core       : "androidx.test.espresso:espresso-core:3.2.0",
+            espresso_intents    : "androidx.test.espresso:espresso-intents:3.2.0",
+            espresso_contrib    : "androidx.test.espresso:espresso-contrib:3.2.0",
+    ]
+}

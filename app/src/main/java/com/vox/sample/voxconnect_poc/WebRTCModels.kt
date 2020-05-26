@@ -1,25 +1,49 @@
 package com.vox.sample.voxconnect_poc
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
+import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.core.TreeNode
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.fasterxml.jackson.module.kotlin.KotlinModule
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
+import com.google.gson.Gson
 import com.google.gson.annotations.SerializedName
 
-data class Message (val src: String? = null, val type: MessageType? = null, var payload: Any? = null) {
-    companion object {
-        fun join(join: Join): Message = Message(
-            payload = join
-        )
-        fun handshake(sync: Sync): Message = Message(
-            type = MessageType.HANDSHAKE,
-            payload = sync
-        )
+val mapper: ObjectMapper by lazy {
+    jacksonObjectMapper()
+}
 
-        fun sdp(source: String?, sdp: SDP): Message = Message (
+interface JsonMappable {
+    fun toJsonNode(): JsonNode {
+        return mapper.valueToTree(this)
+    }
+}
+
+inline fun <reified T> JsonNode.parse() : T? {
+    try {
+        return mapper.readValue<T>(mapper.writeValueAsString(this))
+    } catch (e: Exception) {
+        return null
+    }
+}
+
+data class Message(
+    val src: String? = null,
+    val type: String? = null,
+    var payload: Any? = null
+) : JsonMappable {
+    companion object {
+        fun sdp(source: String?, sdp: SDP): Message = Message(
             src = source,
-            type = MessageType.SDP,
+            type = "sdp", // MessageType.SDP,
             payload = sdp
         )
 
-        fun candidate(candidate: Candidate): Message = Message (
-            type = MessageType.CANDIDATE,
+        fun candidate(candidate: Candidate): Message = Message(
+            type = "candidate", // MessageType.CANDIDATE,
             payload = candidate
         )
     }
@@ -27,73 +51,108 @@ data class Message (val src: String? = null, val type: MessageType? = null, var 
 
 data class Join (
     var role: SocketClientType
-)
+) : JsonMappable
 
 data class SpeakerMessage(
     var to: String,
     var message: Message
 )
-data class Sync (
+
+data class Sync(
     var sourceId: String,
     var clientType: ClientType
 )
-data class SignalingMessage (
+
+data class SignalingMessage(
     var type: String,
     var sessionDescription: SDP?,
     var candidate: Candidate?
 )
 
-data class SDP (
-    var clientType: ClientType,
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SdpReponse(
+    val src: String?,
+    val payload: SDP
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SDP(
     var sdp: String,
     var sdpType: SdpType
 )
 
-data class Candidate (
-    var clientType: ClientType,
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class CandidateReponse(
+    val src: String?,
+    val payload: Candidate
+)
+
+data class Candidate(
     var sdp: String,
     var sdpMLineIndex: Int,
     var sdpMid: String
 )
 
-data class TwilioCredentials (
-    var userName: String,
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class IceServer(
+    val url: String
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class TwilioCredentials(
+    var username: String,
     var password: String,
-    var iceServers: List<String>
+    var ice_servers: List<IceServer>
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SpeakerStatus(
+    val status: String,
+    val uuId: String?
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class ListenerJoinResponse(
+    val speaker_status: SpeakerStatus,
+    val twilio_creds: TwilioCredentials
+)
+
+@JsonIgnoreProperties(ignoreUnknown = true)
+data class SpeakerJoinResponse(
+    val twilio_creds: TwilioCredentials
 )
 
 enum class ClientType {
-    @SerializedName("listener")
+    @JsonProperty("listener")
     LISTENER,
-    @SerializedName("presenter")
+
+    @JsonProperty("presenter")
     PRESENTER
 }
 
 enum class SocketClientType {
-    @SerializedName("listener")
+    @JsonProperty("listener")
     LISTENER,
-    @SerializedName("speaker")
+
+    @JsonProperty("speaker")
     SPEAKER
 }
 
 enum class SdpType {
-    @SerializedName("offer")
+    @JsonProperty("offer")
     OFFER,
-    @SerializedName("answer")
+
+    @JsonProperty("answer")
     ANSWER,
-    @SerializedName("prAnswer")
+
+    @JsonProperty("prAnswer")
     PRANSWER
 }
 
 enum class MessageType(var value: String) {
-    @SerializedName("presenter_list")
-    PRESENTER_LIST("presenter_list"),
-    @SerializedName("join")
-    JOIN("join"),
-    @SerializedName("handshake")
-    HANDSHAKE("handshake"),
-    @SerializedName("sdp")
+    @JsonProperty("sdp")
     SDP("sdp"),
-    @SerializedName("candidate")
+
+    @JsonProperty("candidate")
     CANDIDATE("candidate")
 }

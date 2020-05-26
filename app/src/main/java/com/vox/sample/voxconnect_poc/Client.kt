@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Handler
 import android.util.Log
 import android.view.View
-import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import com.google.gson.Gson
@@ -14,20 +13,23 @@ import org.webrtc.*
 import java.util.concurrent.Executors
 
 
-class Client constructor (private val context: Context,
-                          private val peerConnectionManager: PeerConnectionManager,
-                          private val mode: String,
-                          private val twilioCredentials: TwilioCredentials,
-                          private val socketManager: SocketManager):
-    SocketInterface {
+class Client constructor(
+    private val context: Context,
+    private val peerConnectionManager: PeerConnectionManager,
+    private val mode: String,
+    private val twilioCredentials: TwilioCredentials,
+    private val socketManager: SocketManager
+) : SocketInterface {
+
     private lateinit var sdpConstraints: MediaConstraints
-    private var peerConnectionFactory: PeerConnectionFactory = peerConnectionManager.getPeerConnectionFactory()
+    private var peerConnectionFactory: PeerConnectionFactory =
+        peerConnectionManager.getPeerConnectionFactory()
 
 
     private val iceServers: List<PeerConnection.IceServer> = listOf(
         PeerConnection.IceServer
-            .builder(twilioCredentials.iceServers)
-            .setUsername(twilioCredentials.userName)
+            .builder(twilioCredentials.ice_servers.map { it.url })
+            .setUsername(twilioCredentials.username)
             .setPassword(twilioCredentials.password)
             .createIceServer()
     )
@@ -60,8 +62,11 @@ class Client constructor (private val context: Context,
                             super.onIceCandidate(iceCandidate)
                             onIceCandidateReceived(iceCandidate)
                         }
-                        override fun onAddTrack(rtpReceiver: RtpReceiver?,
-                                                mediaStreams: Array<out MediaStream>?) {
+
+                        override fun onAddTrack(
+                            rtpReceiver: RtpReceiver?,
+                            mediaStreams: Array<out MediaStream>?
+                        ) {
                             super.onAddTrack(rtpReceiver, mediaStreams)
                             if (mode == "presenter") {
                                 mediaStreams!![0].audioTracks[0].setEnabled(false)
@@ -130,10 +135,10 @@ class Client constructor (private val context: Context,
 
     fun sendSdp(sessionDescription: SessionDescription, clientType: ClientType, sdpType: SdpType) {
         try {
-            val sdp = SDP(clientType,
+            val sdp = SDP(
                 sessionDescription.description,
                 sdpType
-                )
+            )
 
             var message = Gson().toJson(Message.sdp(socketManager.getSourceId(), sdp))
 
@@ -143,8 +148,7 @@ class Client constructor (private val context: Context,
             if (mode == "listener") {
                 socketManager.sendOffer(message)
                 Log.e("Socket", "sending offer to the server")
-            }
-            else {
+            } else {
                 socketManager.sendAnswer(message)
                 Log.e("Socket", "sending offer to the client")
             }
@@ -162,7 +166,11 @@ class Client constructor (private val context: Context,
                 ClientType.LISTENER
             }
             val candidate =
-                Candidate(clientType, iceCandidate.sdp, iceCandidate.sdpMLineIndex, iceCandidate.sdpMid)
+                Candidate(
+                    iceCandidate.sdp,
+                    iceCandidate.sdpMLineIndex,
+                    iceCandidate.sdpMid
+                )
             var message = Gson().toJson(Message.candidate(candidate))
             if (mode == "listener") {
                 message += "\r\n"
@@ -183,7 +191,8 @@ class Client constructor (private val context: Context,
         executor.execute {
             localPeer!!.setRemoteDescription(
                 CustomSdpObserver("localSetRemote"),
-                SessionDescription(SessionDescription.Type.OFFER,
+                SessionDescription(
+                    SessionDescription.Type.OFFER,
                     offer!!.sdp
                 )
             )

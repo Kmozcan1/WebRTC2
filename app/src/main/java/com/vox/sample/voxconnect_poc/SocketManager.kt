@@ -118,7 +118,8 @@ class SocketManager (val context: Context, mode: String) {
     fun candidateReceived(message: Message) {
         val candidate = Gson().fromJson(Gson().toJson(message.payload), Candidate::class.java)
 
-        if (candidate.clientType == ClientType.PRESENTER) {
+        // TODO:
+        if (ClientType.PRESENTER == ClientType.PRESENTER) {
             listener?.onIceCandidateReceived(candidate)
         } else {
             clientMap[message.src]?.onIceCandidateReceived(candidate)
@@ -165,7 +166,7 @@ class SocketManager (val context: Context, mode: String) {
         for (server in serverInfo) {
             iceServers.add(server["url"].toString().replace("\"", ""))
         }
-        twilioCredentials = TwilioCredentials(userName, password, iceServers)
+//        twilioCredentials = TwilioCredentials(userName, password, iceServers)
     }
 
     fun showToast(message: String) {

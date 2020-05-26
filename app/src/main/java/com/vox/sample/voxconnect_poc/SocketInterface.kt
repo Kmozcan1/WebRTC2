@@ -1,5 +1,7 @@
 package com.vox.sample.voxconnect_poc
 
+import java.lang.Error
+
 interface SocketInterface {
     fun onRemoteHangUp(msg: String)
 

@@ -13,13 +13,17 @@ import java.nio.ByteBuffer
 import java.nio.charset.Charset
 
 
-class WebRTCListenerPhoenix(private val channel: Channel, private var socketManager: SocketManager) {
+class WebRTCListenerPhoenix(
+    private val channel: Channel,
+    private var socketManager: SocketManager
+) {
 
     private lateinit var sourceId: String
 
     init {
         channel.join()
-            .receive("ok"
+            .receive(
+                "ok"
             ) { envelope ->
                 Log.d("Channel", "Joined with $envelope")
                 socketManager.parseTwilioCredentials(envelope.payload)
@@ -39,13 +43,16 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
             onStatusUpdate(envelope)
         }
         channel.on("speaker_msg") { envelope ->
-            onMessage(ByteBuffer.wrap(envelope.payload["message"].toString().toByteArray(Charset.defaultCharset())))
+            onMessage(
+                ByteBuffer.wrap(
+                    envelope.payload["message"].toString().toByteArray(Charset.defaultCharset())
+                )
+            )
         }
     }
 
     fun close() {
-        channel.leave().receive("ok"
-        ) { envelope ->
+        channel.leave().receive("ok") { envelope ->
             Log.d("Channel", "$envelope")
         }
     }
@@ -61,10 +68,8 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
         if (status == "offline") {
             runOnUiThread {
                 socketManager.showToast("Presenter closed the stream")
-                val hangupButton =
-                    (socketManager.context as MainActivity).findViewById<View>(
-                        R.id.hangup_button
-                    ) as Button
+                val hangupButton = (socketManager.context as MainActivity)
+                    .findViewById<View>(R.id.hangup_button) as Button
                 hangupButton.performClick()
             }
             socketManager.disconnect("listener")
@@ -80,16 +85,12 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
         val message = Gson().fromJson(messageString, Message::class.java)
 
         when (message.type) {
-            MessageType.PRESENTER_LIST -> {
-                val streamList = Gson().fromJson<List<String>>(Gson().toJson(message.payload), List::class.java)
-                socketManager.updateStreamList(streamList)
-            }
-            MessageType.SDP -> {
+            /*MessageType.SDP*/ "sdp" -> {
                 val answer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
                 socketManager.setDestinationId(message.src)
                 socketManager.answerReceived(answer)
             }
-            MessageType.CANDIDATE -> {
+            /*MessageType.CANDIDATE*/ "candidate" -> {
                 socketManager.candidateReceived(message)
             }
         }

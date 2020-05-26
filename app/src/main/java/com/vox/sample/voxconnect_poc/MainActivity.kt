@@ -1,20 +1,24 @@
 package com.vox.sample.voxconnect_poc
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
-import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.android.synthetic.main.activity_main.*
-import com.microsoft.appcenter.AppCenter
-import com.microsoft.appcenter.analytics.Analytics
-import com.microsoft.appcenter.crashes.Crashes
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.microsoft.appcenter.AppCenter
+import com.microsoft.appcenter.analytics.Analytics
+import com.microsoft.appcenter.crashes.Crashes
 import com.vox.sample.voxconnect_poc.databinding.ActivityMainBinding
+import com.vox.sample.voxconnect_poc.webrtc.PhoenixPresenter
+import com.vox.sample.voxconnect_poc.webrtc.PhoenixSocket
+import com.vox.sample.voxconnect_poc.webrtc.SignalingSocketListener
+import com.vox.sample.voxconnect_poc.webrtc.SpeakerState
+import kotlinx.android.synthetic.main.activity_main.*
 import org.webrtc.PeerConnection
 
 
@@ -34,7 +38,7 @@ class MainActivity : AppCompatActivity() {
     private var localPeer: PeerConnection? = null
     private lateinit var socketManager: SocketManager
     private var saveRecordedAudioToFile: RecordedAudioToFileController? = null
-
+    private lateinit var phoenixPresenter: PhoenixPresenter
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,28 +50,69 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         askForPermissions()
 
-        val binding: ActivityMainBinding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        val binding: ActivityMainBinding =
+            DataBindingUtil.setContentView(this, R.layout.activity_main)
         binding.activity = this
         binding.executePendingBindings()
 
         stream_recycler_view.setAdapterWithCustomDivider(
             LinearLayoutManager(applicationContext),
-            StreamListAdapter(emptyList(), this@MainActivity))
+            StreamListAdapter(emptyList(), this@MainActivity)
+        )
         socketManager = SocketManager(this, "listener")
     }
 
     private fun askForPermissions() {
-        if (ContextCompat.checkSelfPermission(applicationContext,
-                Manifest.permission.RECORD_AUDIO)
+        if (ContextCompat.checkSelfPermission(
+                applicationContext,
+                Manifest.permission.RECORD_AUDIO
+            )
             != PackageManager.PERMISSION_GRANTED ||
-            ContextCompat.checkSelfPermission(applicationContext,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            != PackageManager.PERMISSION_GRANTED ) {
+            ContextCompat.checkSelfPermission(
+                applicationContext,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            != PackageManager.PERMISSION_GRANTED
+        ) {
 
-            ActivityCompat.requestPermissions(this,
-                arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.WRITE_EXTERNAL_STORAGE),
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(
+                    Manifest.permission.RECORD_AUDIO,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ),
                 ALL_PERMISSIONS_CODE
             )
+        }
+    }
+
+    private val signalingSocketListener = object : SignalingSocketListener {
+        override fun onSocketConnected() {
+            TODO("Not yet implemented")
+        }
+
+        override fun onSpeakerStateChanged(speakerState: SpeakerState) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onReceiveTwilioCredentials(twilioCredentials: TwilioCredentials) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onReceiveOffer(offer: SDP, clientId: String?) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onReceiveAnswer(answer: SDP, clientId: String?) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onReceiveCandidate(candidate: Candidate, clientId: String?) {
+            TODO("Not yet implemented")
+        }
+
+        override fun onError(error: Throwable) {
+            TODO("Not yet implemented")
         }
     }
 
@@ -79,9 +124,17 @@ class MainActivity : AppCompatActivity() {
         status_text_view.visibility = View.VISIBLE
         stream_button.isEnabled = false
         listen_button.visibility = View.GONE
-        socketManager.disconnect("listener")
-        socketManager = SocketManager(this, mode)
-        socketManager.initServerSocket(channel_code_edit_text.text.toString())
+//        socketManager.disconnect("listener")
+//        socketManager = SocketManager(this, mode)
+//        socketManager.initServerSocket(channel_code_edit_text.text.toString())
+        val url = "https://vowdemo.herokuapp.com/vow_socket/websocket"
+        val channelCode = "party"
+        val socket = PhoenixSocket(
+            url, channelCode, SocketClientType.SPEAKER, signalingSocketListener
+        )
+
+//        phoenixPresenter =
+//            PhoenixPresenter(this, "party")
     }
 
     fun listenStream(view: View) {
