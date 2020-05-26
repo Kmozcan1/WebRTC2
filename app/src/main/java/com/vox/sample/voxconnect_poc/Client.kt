@@ -135,7 +135,7 @@ class Client constructor (private val context: Context,
                 sdpType
                 )
 
-            var message = Gson().toJson(Message.sdp(socketManager.getSourceId(), sdp)) + "\r\n"
+            var message = Gson().toJson(Message.sdp(sdp, socketManager.getDestinationId())) + "\r\n"
 
             if (mode == "listener") {
                 socketManager.sendOffer(message)
@@ -238,9 +238,9 @@ class Client constructor (private val context: Context,
                 candidate.sdpMLineIndex,
                 candidate.sdp
             )
-            /*localPeer!!.addIceCandidate(
+            localPeer!!.addIceCandidate(
                 cnd
-            )*/
+            )
 
         } catch (e: JSONException) {
             e.printStackTrace()

@@ -39,7 +39,7 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
             onStatusUpdate(envelope)
         }
         channel.on("speaker_msg") { envelope ->
-            onMessage(ByteBuffer.wrap(envelope.payload["message"].toString().toByteArray(Charset.defaultCharset())))
+            onMessage(ByteBuffer.wrap(envelope.payload.toString().toByteArray(Charset.defaultCharset())))
         }
     }
 
@@ -86,7 +86,7 @@ class WebRTCListenerPhoenix(private val channel: Channel, private var socketMana
             }
             MessageType.SDP -> {
                 val answer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
-                socketManager.setDestinationId(message.src)
+                socketManager.setDestinationId(message.to)
                 socketManager.answerReceived(answer)
             }
             MessageType.CANDIDATE -> {

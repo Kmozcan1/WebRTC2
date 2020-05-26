@@ -15,9 +15,9 @@ data class Message (val src: String? = null,
             payload = sync
         )
 
-        fun sdp(source: String?, sdp: SDP): Message = Message (
-            src = source,
+        fun sdp(sdp: SDP, destination: String?): Message = Message (
             type = MessageType.SDP,
+            to = destination,
             payload = sdp
         )
 

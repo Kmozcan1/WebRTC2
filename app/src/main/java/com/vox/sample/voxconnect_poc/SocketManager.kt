@@ -15,7 +15,7 @@ import org.phoenixframework.channels.Socket
 import java.util.*
 import java.util.concurrent.Executors
 
-class SocketManager (val context: Context, mode: String) {
+class SocketManager (val context: Context, var mode: String) {
 
     private var offer: SDP? = null
     private var listener: Client? = null
@@ -118,7 +118,7 @@ class SocketManager (val context: Context, mode: String) {
     fun candidateReceived(message: Message) {
         val candidate = Gson().fromJson(Gson().toJson(message.payload), Candidate::class.java)
 
-        if (candidate.clientType == ClientType.PRESENTER) {
+        if (mode == "listener") {
             listener?.onIceCandidateReceived(candidate)
         } else {
             clientMap[message.src]?.onIceCandidateReceived(candidate)
