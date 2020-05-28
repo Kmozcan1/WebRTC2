@@ -7,6 +7,7 @@ import android.widget.TextView
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
+import com.vox.sample.voxconnect_poc.ui.main.MainActivity
 import org.phoenixframework.channels.Channel
 import org.phoenixframework.channels.Envelope
 import java.nio.ByteBuffer
@@ -68,9 +69,9 @@ class WebRTCListenerPhoenix(
         if (status == "offline") {
             runOnUiThread {
                 socketManager.showToast("Presenter closed the stream")
-                val hangupButton = (socketManager.context as MainActivity)
-                    .findViewById<View>(R.id.hangup_button) as Button
-                hangupButton.performClick()
+//                val hangupButton = (socketManager.context as MainActivity)
+//                    .findViewById<View>(R.id.hangup_button) as Button
+//                hangupButton.performClick()
             }
             socketManager.disconnect("listener")
         } else if (status == "online") {
@@ -87,7 +88,7 @@ class WebRTCListenerPhoenix(
         when (message.type) {
             /*MessageType.SDP*/ "sdp" -> {
                 val answer = Gson().fromJson(Gson().toJson(message.payload), SDP::class.java)
-                socketManager.setDestinationId(message.src)
+//                socketManager.setDestinationId(message.src)
                 socketManager.answerReceived(answer)
             }
             /*MessageType.CANDIDATE*/ "candidate" -> {

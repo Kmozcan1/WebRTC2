@@ -9,9 +9,8 @@ import org.phoenixframework.channels.Socket
 import java.util.*
 
 class PhoenixSocket(
-    private val socketUrl: String,
-    private val channelCode: String,
-    private val clientType: SocketClientType,
+    channelCode: String,
+    clientType: SocketClientType,
     private val listener: SignalingSocketListener
 ) {
     private val LOG_TAG = "SocketMessage"
@@ -38,6 +37,7 @@ class PhoenixSocket(
     }
 
     init {
+        val socketUrl = "https://vowdemo.herokuapp.com/vow_socket/websocket"
         val url = Uri.parse(socketUrl).buildUpon()
             .appendQueryParameter("token", token)
             .appendQueryParameter("uuid", uuid)
@@ -69,6 +69,18 @@ class PhoenixSocket(
             handleMessage(it.payload)
         }
     }
+
+    // region === Public Methods ===
+
+    fun sendSdp(sdp: SDP, to: String? = null) {
+        sendMesage(Message.sdp(sdp, to))
+    }
+
+    fun sendCandidate(candidate: Candidate, to: String? = null) {
+        sendMesage(Message.candidate(candidate, to))
+    }
+
+    // endregion
 
     private fun sendMesage(message: Message) {
         channel.push(PUSH_TAG, message.toJsonNode())

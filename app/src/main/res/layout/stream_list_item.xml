@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
   <data>
-    <variable name="activity" type="com.vox.sample.voxconnect_poc.MainActivity"/>
+    <variable name="activity" type="com.vox.sample.voxconnect_poc.ui.main.MainActivity"/>
     <variable name="streamName" type="String"/>
   </data>
 

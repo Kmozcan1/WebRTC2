@@ -74,7 +74,7 @@ class WebRTCPresenterPhoenix(
 
             if (message.type == "sdp") { // MessageType.SDP) {
                 Log.d("Speaker_MSG", "Received Offer")
-                socketManager.setDestinationId(message.src)
+//                socketManager.setDestinationId(message.src)
                 socketManager.offerReceived(message)
             } else if (message.type == "candidate") { // MessageType.CANDIDATE) {
                 Log.d("Speaker_MSG", "Received Candidate")

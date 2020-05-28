@@ -10,7 +10,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.gson.Gson
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
-import kotlinx.coroutines.launch
+import com.vox.sample.voxconnect_poc.ui.main.MainActivity
 import org.phoenixframework.channels.Socket
 import java.util.*
 import java.util.concurrent.Executors
@@ -60,7 +60,7 @@ class SocketManager (val context: Context, mode: String) {
             twilioCredentials,
             this@SocketManager
         )
-        clientMap[message.src!!] = presenter
+//        clientMap[message.src!!] = presenter
 
     }
 
@@ -122,15 +122,15 @@ class SocketManager (val context: Context, mode: String) {
         if (ClientType.PRESENTER == ClientType.PRESENTER) {
             listener?.onIceCandidateReceived(candidate)
         } else {
-            clientMap[message.src]?.onIceCandidateReceived(candidate)
+//            clientMap[message.src]?.onIceCandidateReceived(candidate)
         }
     }
 
     fun updateStreamList(streamList: List<String>) {
         runOnUiThread {
-            val streamRecyclerView =
-                (context as MainActivity).findViewById<View>(R.id.stream_recycler_view) as RecyclerView
-            streamRecyclerView.adapter = StreamListAdapter(streamList, context)
+//            val streamRecyclerView =
+//                (context as MainActivity).findViewById<View>(R.id.stream_recycler_view) as RecyclerView
+//            streamRecyclerView.adapter = StreamListAdapter(streamList, context)
         }
     }
 

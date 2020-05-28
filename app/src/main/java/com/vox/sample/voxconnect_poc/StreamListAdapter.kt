@@ -3,6 +3,7 @@ package com.vox.sample.voxconnect_poc
 import android.view.ViewGroup
 import androidx.databinding.ViewDataBinding
 import androidx.recyclerview.widget.RecyclerView
+import com.vox.sample.voxconnect_poc.ui.main.MainActivity
 
 /**
  * Created by Kadir Mert Ozcan on 22/05/2019.

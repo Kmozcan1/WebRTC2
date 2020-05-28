@@ -2,15 +2,11 @@ package com.vox.sample.voxconnect_poc
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.core.TreeNode
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.databind.node.ObjectNode
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import com.google.gson.Gson
-import com.google.gson.annotations.SerializedName
+import org.webrtc.SessionDescription
 
 val mapper: ObjectMapper by lazy {
     jacksonObjectMapper()
@@ -22,7 +18,7 @@ interface JsonMappable {
     }
 }
 
-inline fun <reified T> JsonNode.parse() : T? {
+inline fun <reified T> JsonNode.parse(): T? {
     try {
         return mapper.readValue<T>(mapper.writeValueAsString(this))
     } catch (e: Exception) {
@@ -31,25 +27,26 @@ inline fun <reified T> JsonNode.parse() : T? {
 }
 
 data class Message(
-    val src: String? = null,
     val type: String? = null,
-    var payload: Any? = null
+    var payload: Any? = null,
+    var to: String? = null
 ) : JsonMappable {
     companion object {
-        fun sdp(source: String?, sdp: SDP): Message = Message(
-            src = source,
+        fun sdp(sdp: SDP, to: String? = null): Message = Message(
             type = "sdp", // MessageType.SDP,
-            payload = sdp
+            payload = sdp,
+            to = to
         )
 
-        fun candidate(candidate: Candidate): Message = Message(
+        fun candidate(candidate: Candidate, to: String? = null): Message = Message(
             type = "candidate", // MessageType.CANDIDATE,
-            payload = candidate
+            payload = candidate,
+            to = to
         )
     }
 }
 
-data class Join (
+data class Join(
     var role: SocketClientType
 ) : JsonMappable
 
@@ -79,7 +76,12 @@ data class SdpReponse(
 data class SDP(
     var sdp: String,
     var sdpType: SdpType
-)
+) {
+    constructor(sessionDescription: SessionDescription) : this(
+        sessionDescription.description,
+        SdpType.ANSWER
+    )
+}
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 data class CandidateReponse(

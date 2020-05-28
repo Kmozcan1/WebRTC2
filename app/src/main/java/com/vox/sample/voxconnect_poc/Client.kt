@@ -8,6 +8,7 @@ import android.widget.TextView
 import android.widget.Toast
 import com.google.gson.Gson
 import com.microsoft.appcenter.utils.HandlerUtils.runOnUiThread
+import com.vox.sample.voxconnect_poc.ui.main.MainActivity
 import org.json.JSONException
 import org.webrtc.*
 import java.util.concurrent.Executors
@@ -140,7 +141,7 @@ class Client constructor(
                 sdpType
             )
 
-            var message = Gson().toJson(Message.sdp(socketManager.getSourceId(), sdp))
+            var message = Gson().toJson(Message.sdp(sdp))
 
             if (mode == "listener") {
                 message += "\r\n"
@@ -241,7 +242,7 @@ class Client constructor(
             runOnUiThread {
                 val statusTextView =
                     (context as MainActivity).findViewById<View>(R.id.status_text_view) as TextView
-                statusTextView.text = "Listening"
+                statusTextView.setText("Listening")
             }
             firstTime = false
         }
