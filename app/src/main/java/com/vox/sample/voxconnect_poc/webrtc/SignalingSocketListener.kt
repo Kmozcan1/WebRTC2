@@ -6,6 +6,7 @@ import com.vox.sample.voxconnect_poc.TwilioCredentials
 
 interface SignalingSocketListener {
     fun onSocketConnected()
+    fun onSocketDisconnected()
     fun onSpeakerStateChanged(speakerState: SpeakerState)
     fun onReceiveTwilioCredentials(twilioCredentials: TwilioCredentials)
     fun onReceiveOffer(offer: SDP, clientId: String?)

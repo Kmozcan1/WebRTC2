@@ -14,6 +14,16 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
+        <TextView
+            android:id="@+id/la_textview_status"
+            android:gravity="center"
+            android:textSize="27sp"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/layout_buttons"/>
+
         <androidx.appcompat.widget.LinearLayoutCompat
             android:id="@+id/layout_buttons"
             android:layout_width="match_parent"
@@ -39,13 +49,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
                 android:layout_marginBottom="8dp"
-                android:text="Listen"/>
+                android:text="Connect"/>
 
             <Button
                 android:id="@+id/la_button_send_message"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:text="Listen"/>
+                android:text="Send Message"/>
 
         </androidx.appcompat.widget.LinearLayoutCompat>
 

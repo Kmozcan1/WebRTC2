@@ -8,17 +8,23 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.vox.sample.voxconnect_poc.*
 import com.vox.sample.voxconnect_poc.webrtc.*
+import kotlinx.android.synthetic.main.listener_activity.*
 import kotlinx.android.synthetic.main.presenter_activity.*
 import org.webrtc.PeerConnection
+import java.util.*
 
 class PresenterActivity : AppCompatActivity() {
 
     private val LOG_TAG = "PresenterLogs"
 
+    private val uuid = UUID.randomUUID().toString()
+
     private lateinit var twilioCredentials: TwilioCredentials
     private val clientMap = hashMapOf<String, WebRtcClient>()
 
     private lateinit var signalingSocket: PhoenixSocket
+
+    private var isConnected = false
 
     // region === Activity Lifecycle ===
 
@@ -34,12 +40,26 @@ class PresenterActivity : AppCompatActivity() {
     // region === Action Listeners ===
     
     private val connectButtonClickListener = View.OnClickListener {
-        startStreaming()
+        if (isConnected) {
+            disconnect()
+        } else {
+            startStreaming()
+        }
     }
 
     private val signalingSocketListener = object : SignalingSocketListener {
         override fun onSocketConnected() {
-            Log.d(LOG_TAG, "Socket Connected")
+            isConnected = true
+            runOnUiThread {
+                updateConnectButton()
+            }
+        }
+
+        override fun onSocketDisconnected() {
+            isConnected = false
+            runOnUiThread {
+                updateConnectButton()
+            }
         }
 
         override fun onSpeakerStateChanged(speakerState: SpeakerState) {
@@ -103,8 +123,25 @@ class PresenterActivity : AppCompatActivity() {
             signalingSocket.sendCandidate(candidate = candidate, to = clientId)
         }
 
-        override fun onReceiveMessage(message: String, clientId: String?) {
-            Toast.makeText(this@PresenterActivity, message, Toast.LENGTH_LONG).show()
+        override fun onReceiveMessage(message: DataChannelMessage, clientId: String?) {
+            runOnUiThread {
+                Toast.makeText(this@PresenterActivity, message.toString(), Toast.LENGTH_LONG).show()
+            }
+        }
+
+        override fun onConnectionStateChanged(
+            newState: PeerConnection.IceConnectionState,
+            clientId: String?
+        ) {
+            runOnUiThread {
+                when (newState) {
+                    PeerConnection.IceConnectionState.CONNECTED -> updateListenerCount()
+                    PeerConnection.IceConnectionState.CLOSED,
+                    PeerConnection.IceConnectionState.DISCONNECTED,
+                    PeerConnection.IceConnectionState.FAILED -> handleClosedClient(clientId)
+                    else -> print(newState)
+                }
+            }
         }
     }
     
@@ -112,7 +149,25 @@ class PresenterActivity : AppCompatActivity() {
     
     
     // region === Private Methods ===
-    
+
+    private fun handleClosedClient(clientId: String?) {
+        clientMap.get(clientId)?.disconnect()
+        clientMap.remove(clientId)
+
+        updateListenerCount()
+    }
+
+    private fun updateListenerCount() {
+        pa_textview_listener_count.setText("Listener Count: ${clientMap.size}")
+    }
+
+    private fun updateConnectButton() {
+        pa_button_connect.isEnabled = true
+        pa_button_connect.setText(
+            if (isConnected) "Disconnect" else "Connect"
+        )
+    }
+
     private fun uiSetup() {
         pa_button_connect.setOnClickListener(connectButtonClickListener)
     }
@@ -122,13 +177,28 @@ class PresenterActivity : AppCompatActivity() {
         if (channelCode.isNotEmpty()) {
             pa_button_connect.setText("Presenting...")
             pa_button_connect.isEnabled = false
-            signalingSocket = PhoenixSocket(channelCode, SocketClientType.SPEAKER, signalingSocketListener)
+            signalingSocket = PhoenixSocket(uuid, channelCode, SocketClientType.SPEAKER, signalingSocketListener)
             return
         }
 
         pa_edittext_channel_code.error = "Please enter channel code"
     }
-    
+
+    private fun disconnect() {
+        for (client in clientMap.values) {
+            client.disconnect()
+        }
+        clientMap.clear()
+        updateListenerCount()
+        signalingSocket.disconnect()
+        pa_button_connect.setText("Connect")
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+
+        disconnect()
+    }
     // endregion
 
 }

@@ -1,12 +1,13 @@
 package com.vox.sample.voxconnect_poc.webrtc
 
 import android.content.Context
-import com.vox.sample.voxconnect_poc.Candidate
-import com.vox.sample.voxconnect_poc.CustomPeerConnectionObserver
-import com.vox.sample.voxconnect_poc.CustomSdpObserver
-import com.vox.sample.voxconnect_poc.SDP
+import android.util.Log
+import com.google.gson.Gson
+import com.vox.sample.voxconnect_poc.*
 import org.webrtc.*
 import org.webrtc.audio.JavaAudioDeviceModule
+import java.nio.ByteBuffer
+
 
 class WebRtcClient(
     private val context: Context,
@@ -46,8 +47,8 @@ class WebRtcClient(
     }
 
     private lateinit var peerConnection: PeerConnection
-    private lateinit var remoteDataChannel: DataChannel
-    private lateinit var dataChannel: DataChannel
+    private lateinit var receivingDataChannel: DataChannel
+    private lateinit var broadcastingDataChannel: DataChannel
 
 
     init {
@@ -62,21 +63,21 @@ class WebRtcClient(
                 peerConnectionObserver
             )!!
 
+            createRemoteDataChannel()
+
             if (mode == "presenter") {
                 addAudioTrackToLocalPeer()
             } else {
                 createOffer()
             }
-
-            createRemoteDataChannel()
         }
     }
 
     private fun createRemoteDataChannel() {
         val initializer = DataChannel.Init()
         initializer.id = 0
-        remoteDataChannel = peerConnection.createDataChannel("0", initializer)
-        remoteDataChannel.registerObserver(dataChannelObserver)
+        receivingDataChannel = peerConnection.createDataChannel("dataChannel", initializer)
+        receivingDataChannel.registerObserver(dataChannelObserver)
     }
 
     private fun addAudioTrackToLocalPeer() {
@@ -87,7 +88,14 @@ class WebRtcClient(
 
     private val dataChannelObserver = object : DataChannel.Observer {
         override fun onMessage(buffer: DataChannel.Buffer?) {
+            val data = buffer!!.data
+            val bytes = ByteArray(data.remaining())
+            data[bytes]
+            val strMsg = String(bytes)
 
+            val message = Gson().fromJson(strMsg, DataChannelMessage::class.java)
+
+            listener.onReceiveMessage(message, clientId)
         }
 
         override fun onBufferedAmountChange(bufferAmount: Long) {
@@ -117,7 +125,13 @@ class WebRtcClient(
 
         override fun onConnectionChange(newState: PeerConnection.PeerConnectionState?) {
             super.onConnectionChange(newState)
+            Log.d(LOG_TAG, "New Peer Connection state: $newState")
+        }
 
+        override fun onIceConnectionChange(iceConnectionState: PeerConnection.IceConnectionState?) {
+            super.onIceConnectionChange(iceConnectionState)
+            Log.d(LOG_TAG, "New Ice Connection state: $iceConnectionState")
+            listener.onConnectionStateChanged(iceConnectionState!!, clientId)
         }
 
         override fun onAddStream(mediaStream: MediaStream?) {
@@ -126,8 +140,10 @@ class WebRtcClient(
 
         override fun onDataChannel(dataChannel: DataChannel?) {
             super.onDataChannel(dataChannel)
-            dataChannel?.let {
-                this@WebRtcClient.dataChannel = it
+            onIoThread {
+                dataChannel?.let {
+                    this@WebRtcClient.broadcastingDataChannel = it
+                }
             }
         }
     }
@@ -223,6 +239,20 @@ class WebRtcClient(
                 CustomSdpObserver(LOG_TAG),
                 sdp
             )
+        }
+    }
+
+    fun sendMessage(message: DataChannelMessage) {
+        val msgStr = message.toJsonString()
+        val buffer = ByteBuffer.wrap(msgStr.toByteArray(Charsets.UTF_8))
+        val data = DataChannel.Buffer(buffer, false)
+        broadcastingDataChannel.send(data)
+    }
+
+    fun disconnect() {
+        onIoThread {
+            peerConnection.close()
+            peerConnection.stopRtcEventLog()
         }
     }
 

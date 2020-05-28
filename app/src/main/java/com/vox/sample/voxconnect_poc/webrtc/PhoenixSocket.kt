@@ -9,14 +9,15 @@ import org.phoenixframework.channels.Socket
 import java.util.*
 
 class PhoenixSocket(
+    private val uuid: String,
     channelCode: String,
     clientType: SocketClientType,
     private val listener: SignalingSocketListener
 ) {
     private val LOG_TAG = "SocketMessage"
 
-    private val uuid = UUID.randomUUID().toString()
     private val token = "TOKEN123"
+    private val socket: Socket
     private val channel: Channel
 
     private val LISTENER_MSG = "listener_msg"
@@ -43,12 +44,15 @@ class PhoenixSocket(
             .appendQueryParameter("uuid", uuid)
             .build().toString()
 
-        val socket = Socket(url)
+        socket = Socket(url)
         socket.onError { reason ->
             listener.onError(Throwable(reason))
         }
         socket.onOpen {
             listener.onSocketConnected()
+        }
+        socket.onClose {
+            listener.onSocketDisconnected()
         }
         socket.connect()
 
@@ -78,6 +82,11 @@ class PhoenixSocket(
 
     fun sendCandidate(candidate: Candidate, to: String? = null) {
         sendMesage(Message.candidate(candidate, to))
+    }
+
+    fun disconnect() {
+        channel.leave()
+        socket.disconnect()
     }
 
     // endregion

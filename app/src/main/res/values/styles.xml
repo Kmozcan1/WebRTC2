@@ -10,6 +10,12 @@
         <item name="buttonStyle">@style/ButtonStyle</item>
     </style>
 
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+
     <style name="ButtonStyle" parent="@style/Widget.AppCompat.Button">
         <item name="android:background">@color/colorPrimary</item>
         <item name="android:textColor">@android:color/white</item>

@@ -8,12 +8,17 @@ import com.vox.sample.voxconnect_poc.*
 import com.vox.sample.voxconnect_poc.webrtc.*
 import kotlinx.android.synthetic.main.listener_activity.*
 import org.webrtc.PeerConnection
+import java.util.*
 
 class ListenerActivity : AppCompatActivity() {
+
+    private val uuid = UUID.randomUUID().toString()
 
     private lateinit var twilioCredentials: TwilioCredentials
     private lateinit var webRtcClient: WebRtcClient
     private lateinit var signalingSocket: PhoenixSocket
+    private var isConnected = false
+    private var isListening = false
 
     // region === Activity Lifecycle ===
 
@@ -29,12 +34,35 @@ class ListenerActivity : AppCompatActivity() {
     // region === Action Listeners ===
 
     private val connectButtonClickListener = View.OnClickListener {
-        connect()
+        if (isConnected) {
+            disconnect()
+        } else {
+            connect()
+        }
+    }
+
+    private val sendMessageButtonClickListener = View.OnClickListener {
+        val message = DataChannelMessage(
+            uuid,
+            "Test Message"
+        )
+
+        webRtcClient.sendMessage(message)
     }
 
     private val signalingSocketListener = object : SignalingSocketListener {
         override fun onSocketConnected() {
+            isConnected = true
+            runOnUiThread {
+                updateConnectButton()
+            }
+        }
 
+        override fun onSocketDisconnected() {
+            isConnected = false
+            runOnUiThread {
+                updateConnectButton()
+            }
         }
 
         override fun onSpeakerStateChanged(speakerState: SpeakerState) {
@@ -79,7 +107,16 @@ class ListenerActivity : AppCompatActivity() {
             signalingSocket.sendCandidate(candidate)
         }
 
-        override fun onReceiveMessage(message: String, clientId: String?) {
+        override fun onConnectionStateChanged(
+            newState: PeerConnection.IceConnectionState,
+            clientId: String?
+        ) {
+            runOnUiThread {
+                updateListeningState(newState)
+            }
+        }
+
+        override fun onReceiveMessage(message: DataChannelMessage, clientId: String?) {
             // Not used for Listener
         }
     }
@@ -90,15 +127,52 @@ class ListenerActivity : AppCompatActivity() {
 
     private fun uiSetup() {
         la_button_connect.setOnClickListener(connectButtonClickListener)
+        la_button_send_message.setOnClickListener(sendMessageButtonClickListener)
+    }
+
+    private fun updateListeningState(newState: PeerConnection.IceConnectionState) {
+        when (newState) {
+            PeerConnection.IceConnectionState.CONNECTED,
+            PeerConnection.IceConnectionState.COMPLETED -> {
+                la_textview_status.setText("Listening...")
+                la_button_send_message.isEnabled = true
+            }
+
+            PeerConnection.IceConnectionState.CHECKING -> {
+                la_textview_status.setText("Checking...")
+                la_button_send_message.isEnabled = false
+            }
+            else -> {
+                la_textview_status.setText(
+                    if (isConnected) "Waiting For Presenter..." else ""
+                )
+                la_button_send_message.isEnabled = false
+            }
+        }
+    }
+
+    private fun updateConnectButton() {
+        la_button_connect.isEnabled = true
+        la_textview_status.setText(
+            if (isConnected) "Waiting for presenter..." else ""
+        )
+        la_button_connect.setText(
+            if (isConnected) "Disconnect" else "Connect"
+        )
+    }
+
+    private fun disconnect() {
+        webRtcClient.disconnect()
+        signalingSocket.disconnect()
+        la_button_connect.setText("Connect")
     }
 
     private fun connect() {
+        la_button_connect.isEnabled = false
         val channelCode = la_edittext_channel_code.text.toString()
         if (channelCode.isNotEmpty()) {
-            la_button_connect.setText("Listening...")
-            la_button_connect.isEnabled = false
             signalingSocket =
-                PhoenixSocket(channelCode, SocketClientType.LISTENER, signalingSocketListener)
+                PhoenixSocket(uuid, channelCode, SocketClientType.LISTENER, signalingSocketListener)
             return
         }
 
@@ -118,6 +192,12 @@ class ListenerActivity : AppCompatActivity() {
             "listener",
             webRtcClientListener
         )
+    }
+
+    override fun onBackPressed() {
+        super.onBackPressed()
+
+        disconnect()
     }
     // endregion
 }

@@ -16,6 +16,10 @@ interface JsonMappable {
     fun toJsonNode(): JsonNode {
         return mapper.valueToTree(this)
     }
+
+    fun toJsonString(): String {
+        return mapper.writeValueAsString(this)
+    }
 }
 
 inline fun <reified T> JsonNode.parse(): T? {
@@ -25,6 +29,11 @@ inline fun <reified T> JsonNode.parse(): T? {
         return null
     }
 }
+
+data class DataChannelMessage(
+    val name: String,
+    val message: String
+) : JsonMappable
 
 data class Message(
     val type: String? = null,
