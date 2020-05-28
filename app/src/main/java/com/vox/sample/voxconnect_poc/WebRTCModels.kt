@@ -79,7 +79,11 @@ data class SDP(
 ) {
     constructor(sessionDescription: SessionDescription) : this(
         sessionDescription.description,
-        SdpType.ANSWER
+        when (sessionDescription.type) {
+            SessionDescription.Type.ANSWER -> SdpType.ANSWER
+            SessionDescription.Type.OFFER -> SdpType.OFFER
+            else -> SdpType.PRANSWER
+        }
     )
 }
 

@@ -60,7 +60,9 @@ class ListenerActivity : AppCompatActivity() {
         }
 
         override fun onError(error: Throwable) {
-            Toast.makeText(this@ListenerActivity, error.localizedMessage, Toast.LENGTH_LONG).show()
+            runOnUiThread {
+                Toast.makeText(this@ListenerActivity, error.localizedMessage, Toast.LENGTH_LONG).show()
+            }
         }
     }
 
@@ -110,7 +112,7 @@ class ListenerActivity : AppCompatActivity() {
             .setPassword(twilioCredentials.password)
             .createIceServer()
 
-        val client = WebRtcClient(
+        webRtcClient = WebRtcClient(
             this,
             iceServer,
             "listener",
